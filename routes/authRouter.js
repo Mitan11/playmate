@@ -1,11 +1,12 @@
 import express from 'express';
 import { login, register } from '../controllers/authController.js';
 import { handleValidationErrors, validateUserLogin, validateUserRegistration } from '../middleware/validation.js';
+import upload from '../middleware/multer.js';
 
 const authRouter = express.Router();
 
 // User registration route
-authRouter.post('/register', validateUserRegistration, handleValidationErrors, register);
+authRouter.post('/register', upload.single('profile_image'), validateUserRegistration, handleValidationErrors, register);
 
 // User login route
 authRouter.post('/login', validateUserLogin, handleValidationErrors, login);

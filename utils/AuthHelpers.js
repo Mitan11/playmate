@@ -1,7 +1,5 @@
-/* eslint-disable class-methods-use-this */
-const bcrypt = require("bcrypt");
-const JWT = require("jsonwebtoken");
-const { Unauthorized } = require("http-errors");
+import bcrypt from "bcrypt";
+import JWT from "jsonwebtoken";
 
 class AuthHelpers {
 
@@ -21,11 +19,11 @@ class AuthHelpers {
 
     // handles token generation
     async generateToken(payload) {
-        const token = JWT.sign({ id: payload._id }, process.env.JWT_SECRET, {
+        const token = JWT.sign({ id: payload.user_id }, process.env.JWT_SECRET, {
             expiresIn: process.env.JWT_EXPIRES_IN || '7d',
         });
 
-        return token;
+        return token;   
     }
 
     // handles check for a password validity by comparing the
@@ -40,9 +38,9 @@ class AuthHelpers {
     mustBeLoggedIn(req, res, next) {
         try {
         } catch (error) {
-            throw new Unauthorized("You must be logged in to access this resource");
+            throw new Error("You must be logged in to access this resource");
         }
     }
 }
 
-module.exports = new AuthHelpers();
+export default new AuthHelpers();

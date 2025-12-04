@@ -31,14 +31,6 @@ export const validateUserRegistration = [
         .withMessage('Last name must be between 1 and 50 characters')
         .matches(/^[a-zA-Z\s'-]+$/)
         .withMessage('Last name can only contain letters, spaces, apostrophes, and hyphens'),
-
-    body('profile_image')
-        .optional()
-        .trim()
-        .isLength({ max: 165 })
-        .withMessage('Profile image URL must not exceed 165 characters')
-        .isURL()
-        .withMessage('Profile image must be a valid URL')
 ];
 
 // User login validation rules

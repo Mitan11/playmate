@@ -5,6 +5,7 @@ import cors from "cors";
 import db from "./config/db.js";
 import response from "./utils/Response.js";
 import authRouter from "./routes/authRouter.js";
+import connectCloudinary from "./utils/Cloudinary.js";
 
 class App {
     constructor() {
@@ -14,7 +15,7 @@ class App {
 
         this.initializeMiddlewares();
         this.initializeRoutes();
-
+        connectCloudinary();
     }
 
     initializeMiddlewares() {
