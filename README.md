@@ -1,12 +1,14 @@
-# Playmate Authentication API 🔐
+# 🏃‍♂️ Playmate - Sports Social Platform API
 
 ![Node.js](https://img.shields.io/badge/Node.js-18.x-339933?logo=node.js&logoColor=white)
 ![Express](https://img.shields.io/badge/Express-5.2.1-000000?logo=express&logoColor=white)
 ![MySQL](https://img.shields.io/badge/MySQL-8.0+-4479A1?logo=mysql&logoColor=white)
 ![Version](https://img.shields.io/badge/Version-1.0.0-brightgreen)
 ![JWT](https://img.shields.io/badge/JWT-Auth-000000?logo=jsonwebtokens&logoColor=white)
+![Cloudinary](https://img.shields.io/badge/Cloudinary-Image%20CDN-3448C5?logo=cloudinary&logoColor=white)
+![Nodemailer](https://img.shields.io/badge/Nodemailer-Email-22D3EE?logo=nodemailer&logoColor=white)
 
-A secure and robust REST API for user authentication built with Node.js, Express.js, and MySQL. Features user registration, login, email validation, and JWT-based authentication.
+A comprehensive sports social platform API built with Node.js, Express.js, and MySQL. Features user authentication with image uploads, email notifications, sports management, and skill tracking. Perfect for building sports community applications.
 
 ## 📋 Table of Contents
 
@@ -19,13 +21,18 @@ A secure and robust REST API for user authentication built with Node.js, Express
 
 ## ✨ Features
 
-- 🔐 **JWT Authentication** - Secure token-based authentication
-- 📧 **Email Validation** - Real-time email availability checking
-- 🔑 **Password Security** - bcrypt hashing with strong password requirements
+- 🔐 **JWT Authentication** - Secure token-based authentication system
+- 👤 **User Management** - Complete user registration and login
+- 📷 **Image Upload** - Profile pictures with Cloudinary CDN integration
+- 📧 **Email Services** - Welcome emails and notifications with Nodemailer
 - ✅ **Input Validation** - Comprehensive validation using express-validator
-- 🗄️ **MySQL Integration** - Database with connection pooling
-- 🛡️ **Security** - CORS, input sanitization, SQL injection prevention
-- 📷 **Image Upload** - Multer file handling with Cloudinary integration
+- 🏆 **Sports System** - Multi-sport support with skill level tracking
+- 🗄️ **MySQL Integration** - Robust database with connection pooling & transactions
+- 🛡️ **Security Features** - Password hashing, CORS, SQL injection prevention
+- 📊 **Health Monitoring** - API health checks with system metrics
+- 🔍 **Email Availability** - Real-time email checking before registration
+- 📱 **RESTful API** - Clean, standardized API responses
+- 🌟 **Default Assets** - Automatic default profile images
 - 🌥️ **Cloud Storage** - Automatic image optimization and CDN delivery
 
 ## 🚀 Quick Start
@@ -67,6 +74,7 @@ npm start
 
 ### Standard Response Format
 
+**Success Response**:
 ```json
 {
     "status": true,
@@ -74,6 +82,22 @@ npm start
     "message": "Success message",
     "data": {},
     "token": "jwt_token",
+    "timestamp": "2025-12-04T10:30:00.000Z"
+}
+```
+
+**Error Response**:
+```json
+{
+    "status": false,
+    "statusCode": 400,
+    "message": "Validation failed",
+    "errors": [
+        {
+            "field": "user_email",
+            "message": "Please provide a valid email address"
+        }
+    ],
     "timestamp": "2025-12-04T10:30:00.000Z"
 }
 ```
@@ -132,10 +156,29 @@ curl -X POST http://localhost:4000/api/v1/auth/register \
 
 **POST** `/api/v1/auth/login`
 
+**Request Body**:
 ```json
 {
-    "user_email": "user@example.com",
+    "user_email": "john.doe@example.com",
     "user_password": "SecurePass123!"
+}
+```
+
+**Success Response (200)**:
+```json
+{
+    "status": true,
+    "statusCode": 200,
+    "message": "Login successful",
+    "data": {
+        "user_id": 1,
+        "user_email": "john.doe@example.com",
+        "first_name": "John",
+        "last_name": "Doe",
+        "profile_image": "https://res.cloudinary.com/your-cloud/image/upload/v1234567890/user_profiles/abc123.jpg"
+    },
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "timestamp": "2025-12-05T10:30:00.000Z"
 }
 ```
 
@@ -143,9 +186,25 @@ curl -X POST http://localhost:4000/api/v1/auth/register \
 
 **POST** `/api/v1/auth/check-email`
 
+**Request Body**:
 ```json
 {
-    "user_email": "user@example.com"
+    "user_email": "test@example.com"
+}
+```
+
+**Success Response (200)**:
+```json
+{
+    "status": true,
+    "statusCode": 200,
+    "message": "Email availability checked",
+    "data": {
+        "available": true,
+        "user_email": "test@example.com",
+        "message": "Email is available"
+    },
+    "timestamp": "2025-12-05T10:30:00.000Z"
 }
 ```
 
@@ -153,10 +212,39 @@ curl -X POST http://localhost:4000/api/v1/auth/register \
 
 **GET** `/api/v1/auth/health`
 
-Returns API status and version information.
+**Success Response (200)**:
+```json
+{
+    "status": true,
+    "statusCode": 200,
+    "message": "Auth API is healthy",
+    "data": {
+        "service": "auth",
+        "version": "1.0.0",
+        "environment": "development",
+        "uptime": "127.45 seconds",
+        "responseTime": "3ms",
+        "database": "up",
+        "system": {
+            "memory": {
+                "rss": 45678912,
+                "heapUsed": 23456789,
+                "heapTotal": 34567890
+            },
+            "cpu": {
+                "load1m": 0.5,
+                "load5m": 0.3,
+                "load15m": 0.2
+            }
+        }
+    },
+    "timestamp": "2025-12-05T10:30:00.000Z"
+}
+```
 
 ## 🗄️ Database Schema
 
+### Users Table
 ```sql
 CREATE TABLE users (
     user_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -170,6 +258,37 @@ CREATE TABLE users (
     INDEX idx_user_email (user_email)
 );
 ```
+
+### Sports Table
+```sql
+CREATE TABLE sports (
+    sport_id INT AUTO_INCREMENT PRIMARY KEY,
+    sport_name VARCHAR(100) NOT NULL UNIQUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_sport_name (sport_name)
+);
+```
+
+### User Sports (Many-to-Many Relationship)
+```sql
+CREATE TABLE user_sports (
+    user_sport_id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    sport_id INT NOT NULL,
+    skill_level ENUM('Beginner', 'Intermediate', 'Pro') NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+    FOREIGN KEY (sport_id) REFERENCES sports(sport_id) ON DELETE CASCADE,
+    UNIQUE KEY unique_user_sport (user_id, sport_id),
+    INDEX idx_user_id (user_id),
+    INDEX idx_sport_id (sport_id)
+);
+```
+
+### Default Sports Data
+The system automatically inserts these default sports:
+- Cricket
+- Pickleball
 
 ## ⚙️ Environment Setup
 
@@ -217,7 +336,27 @@ If no image is uploaded, users automatically receive:
 https://res.cloudinary.com/dsw5tkkyr/image/upload/v1764845539/avatar_wcaknk.png
 ```
 
-### Password Requirements
+### 📧 Email System
+
+**Welcome Email**: Automatically sent upon successful registration using Nodemailer
+- **Service**: Gmail SMTP
+- **Template**: Custom HTML template with user's name
+- **Subject**: "Welcome to Playmate!"
+- **Content**: Personalized welcome message with platform introduction
+
+**Email Configuration**:
+```javascript
+// Supports Gmail, Outlook, Yahoo, and custom SMTP
+transporter: {
+  service: 'Gmail',
+  auth: {
+    user: process.env.EMAIL,
+    pass: process.env.EMAIL_PASSWORD  // App-specific password
+  }
+}
+```
+
+### 🔐 Password Requirements
 
 - Minimum 8 characters
 - At least one lowercase letter
@@ -225,42 +364,106 @@ https://res.cloudinary.com/dsw5tkkyr/image/upload/v1764845539/avatar_wcaknk.png
 - At least one number
 - At least one special character (@$!%*?&)
 
-### Project Structure
+### 📁 Project Structure
 
 ```
 playmate/
-├── app.js                 # Main application
-├── package.json          # Dependencies
-├── uploads/              # Temporary multer storage
+├── app.js                    # Main Express application class
+├── package.json              # Project dependencies & scripts
+├── .env                      # Environment variables
+├── .gitignore               # Git ignore rules
 ├── config/
-│   └── db.js             # Database connection
+│   └── db.js                # MySQL database connection pool
 ├── controllers/
-│   └── authController.js # Authentication logic
+│   └── authController.js    # Authentication business logic
 ├── middleware/
-│   ├── multer.js         # File upload handling
-│   └── validation.js     # Input validation
+│   ├── authUser.js          # JWT token verification middleware
+│   ├── multer.js            # File upload configuration
+│   └── validation.js       # Express-validator rules
 ├── models/
-│   └── User.js          # User model
+│   ├── User.js              # User database model
+│   ├── Sport.js             # Sports reference model
+│   └── UserSport.js         # User-Sport relationship model
 ├── routes/
-│   └── authRouter.js    # API routes
+│   └── authRouter.js        # Authentication API routes
 └── utils/
-    ├── AuthHelpers.js   # Auth utilities
-    ├── Cloudinary.js    # Cloud storage config
-    └── Response.js      # Response formatter
+    ├── AuthHelpers.js       # Password & JWT utilities
+    ├── Cloudinary.js        # Cloud storage configuration
+    ├── Mail.js              # Email service utilities
+    ├── emailTemplates.js    # HTML email templates
+    └── Response.js          # Standardized API responses
 ```
 
-### Dependencies
+### 📦 Core Dependencies
 
 ```json
 {
-  "multer": "^2.0.2",           // File upload handling
-  "cloudinary": "^2.8.0",      // Cloud image storage
+  "express": "^5.2.1",          // Web framework
+  "mysql2": "^3.15.3",          // MySQL database driver
   "bcrypt": "^6.0.0",           // Password hashing
   "jsonwebtoken": "^9.0.3",     // JWT authentication
-  "express-validator": "^7.3.1", // Input validation
-  "mysql2": "^3.15.3"           // MySQL database driver
+  "express-validator": "^7.3.1", // Input validation & sanitization
+  "multer": "^2.0.2",           // Multipart file upload handling
+  "cloudinary": "^2.8.0",      // Cloud image storage & CDN
+  "nodemailer": "^7.0.11",     // Email service integration
+  "cors": "^2.8.5",            // Cross-origin resource sharing
+  "dotenv": "^17.2.3"          // Environment variable management
 }
 ```
+
+### 🚀 Quick Start Commands
+
+```bash
+# Clone repository
+git clone https://github.com/Mitan11/playmate.git
+
+# Install dependencies
+npm install
+
+# Set up environment variables
+cp .env.example .env
+# Edit .env with your configuration
+
+# Create MySQL database
+mysql -u root -p
+CREATE DATABASE playmate_db;
+
+# Start development server
+node app.js
+```
+
+## 🔄 Future Enhancements
+
+- 🏀 **Sport Management API** - Full CRUD operations for sports
+- 👥 **Friend System** - User connections and friend requests  
+- 🏟️ **Venue Management** - Sports venue booking system
+- 📅 **Event Scheduling** - Create and join sports events
+- 💬 **Chat System** - Real-time messaging between users
+- 🏆 **Achievement System** - Badges and rewards for activities
+- 📊 **Analytics Dashboard** - User activity and sports statistics
+- 🔔 **Push Notifications** - Event reminders and updates
+
+## 🚀 Production Deployment
+
+### Environment Variables
+Ensure all required environment variables are configured:
+- Database credentials for production MySQL instance
+- Cloudinary account for image storage
+- Gmail app-specific password for email services
+- Strong JWT secret key (min. 32 characters)
+
+### Security Considerations
+- Use HTTPS in production
+- Implement rate limiting
+- Add request logging
+- Configure proper CORS origins
+- Use environment-specific configurations
+
+### Recommended Infrastructure
+- **Database**: MySQL 8.0+ with connection pooling
+- **File Storage**: Cloudinary or AWS S3
+- **Hosting**: Railway, Render, or AWS EC2
+- **CDN**: Cloudinary automatic optimization
 
 ## 📞 Contact
 
