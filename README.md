@@ -25,6 +25,8 @@ A secure and robust REST API for user authentication built with Node.js, Express
 - ✅ **Input Validation** - Comprehensive validation using express-validator
 - 🗄️ **MySQL Integration** - Database with connection pooling
 - 🛡️ **Security** - CORS, input sanitization, SQL injection prevention
+- 📷 **Image Upload** - Multer file handling with Cloudinary integration
+- 🌥️ **Cloud Storage** - Automatic image optimization and CDN delivery
 
 ## 🚀 Quick Start
 
@@ -80,17 +82,35 @@ npm start
 
 **POST** `/api/v1/auth/register`
 
-```json
-{
-    "user_email": "user@example.com",
-    "user_password": "SecurePass123!",
-    "first_name": "John",
-    "last_name": "Doe",
-    "profile_image": "https://example.com/image.jpg"
-}
+**Content-Type**: `multipart/form-data`
+
+**Form Fields**:
+```
+user_email: john.doe@example.com
+user_password: SecurePass123!
+first_name: John
+last_name: Doe
+profile_image: [FILE] (optional - image file)
 ```
 
-**Success Response (201):**
+**cURL Example**:
+```bash
+curl -X POST http://localhost:4000/api/v1/auth/register \
+  -F "user_email=john.doe@example.com" \
+  -F "user_password=SecurePass123!" \
+  -F "first_name=John" \
+  -F "last_name=Doe" \
+  -F "profile_image=@/path/to/your/image.jpg"
+```
+
+**Image Upload Details**:
+- **Accepted formats**: JPG, PNG, GIF, WebP
+- **File size limit**: 10MB
+- **Processing**: Automatically uploaded to Cloudinary CDN
+- **Default avatar**: Provided if no image uploaded
+- **Storage**: Cloudinary secure URLs saved in database
+
+**Success Response (201)**:
 ```json
 {
     "status": true,
@@ -98,12 +118,13 @@ npm start
     "message": "User registered successfully",
     "data": {
         "user_id": 1,
-        "user_email": "user@example.com",
+        "user_email": "john.doe@example.com",
         "first_name": "John",
-        "last_name": "Doe"
+        "last_name": "Doe",
+        "profile_image": "https://res.cloudinary.com/your-cloud/image/upload/v1234567890/user_profiles/abc123.jpg"
     },
     "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-    "timestamp": "2025-12-04T10:30:00.000Z"
+    "timestamp": "2025-12-05T10:30:00.000Z"
 }
 ```
 
@@ -155,6 +176,9 @@ CREATE TABLE users (
 Create `.env` file:
 
 ```env
+# Server Configuration
+PORT=4000
+
 # Database Configuration
 DB_HOST=localhost
 DB_PORT=3306
@@ -166,8 +190,26 @@ DB_NAME=playmate_db
 JWT_SECRET=your_super_secret_jwt_key
 JWT_EXPIRES_IN=7d
 
-# Server Configuration
-PORT=3000
+# Cloudinary Configuration
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_api_key
+CLOUDINARY_SECRET_KEY=your_secret_key
+```
+
+### Image Upload Flow
+
+1. **Frontend**: User selects image file in form
+2. **Multer**: Receives and temporarily stores uploaded file
+3. **Validation**: Checks file type and size limits
+4. **Cloudinary**: Uploads image to cloud storage
+5. **Database**: Stores Cloudinary URL in user profile
+6. **Response**: Returns user data with image URL
+
+### Default Profile Image
+
+If no image is uploaded, users automatically receive:
+```
+https://res.cloudinary.com/dsw5tkkyr/image/upload/v1764845539/avatar_wcaknk.png
 ```
 
 ### Password Requirements
@@ -184,11 +226,13 @@ PORT=3000
 playmate/
 ├── app.js                 # Main application
 ├── package.json          # Dependencies
+├── uploads/              # Temporary multer storage
 ├── config/
 │   └── db.js             # Database connection
 ├── controllers/
 │   └── authController.js # Authentication logic
 ├── middleware/
+│   ├── multer.js         # File upload handling
 │   └── validation.js     # Input validation
 ├── models/
 │   └── User.js          # User model
@@ -196,7 +240,21 @@ playmate/
 │   └── authRouter.js    # API routes
 └── utils/
     ├── AuthHelpers.js   # Auth utilities
+    ├── Cloudinary.js    # Cloud storage config
     └── Response.js      # Response formatter
+```
+
+### Dependencies
+
+```json
+{
+  "multer": "^2.0.2",           // File upload handling
+  "cloudinary": "^2.8.0",      // Cloud image storage
+  "bcrypt": "^6.0.0",           // Password hashing
+  "jsonwebtoken": "^9.0.3",     // JWT authentication
+  "express-validator": "^7.3.1", // Input validation
+  "mysql2": "^3.15.3"           // MySQL database driver
+}
 ```
 
 ## 📞 Contact
