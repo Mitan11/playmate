@@ -1,9 +1,7 @@
+// Playmate Welcome Email Template
 export const playmateWelcomeTemplate = ({
     name,
     logoUrl = "https://res.cloudinary.com/dsw5tkkyr/image/upload/v1764918615/1758647674156_nl5ayo.png",
-    primary = "#22A06B",
-    accent = "#1F8A58",
-    muted = "#6b7280",
     profileUrl = "https://playmate.app/me",
 }) => {
     const year = new Date().getFullYear();
@@ -203,7 +201,7 @@ export const playmateWelcomeTemplate = ({
                         </center>
                       </v:roundrect>
                       <![endif]-->
-                      <a href="https://playmate.app/me" class="button" style="display: inline-block; padding: 12px 22px; background: #22A06B; color: #ffffff !important; text-decoration: none; font-size: 15px; font-weight: 600; border-radius: 6px; line-height: 1.5; -webkit-text-size-adjust: none; mso-hide: all;">
+                      <a href="${profileUrl}" class="button" style="display: inline-block; padding: 12px 22px; background: #22A06B; color: #ffffff !important; text-decoration: none; font-size: 15px; font-weight: 600; border-radius: 6px; line-height: 1.5; -webkit-text-size-adjust: none; mso-hide: all;">
                         Complete Your Profile
                       </a>
                     </td>

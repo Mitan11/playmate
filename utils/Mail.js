@@ -12,6 +12,7 @@ const transporter = nodemailer.createTransport({
 // Send Email Function
 export const sendWelcomeEmail = async (to, subject, html) => {
     try {
+        // Email options
         const mailOptions = {
             from: `"Playmate" <${process.env.EMAIL}>`,
             to,
@@ -19,6 +20,7 @@ export const sendWelcomeEmail = async (to, subject, html) => {
             html,
         };
 
+        // Send email
         const result = await transporter.sendMail(mailOptions);
         console.log("Welcome email sent:", result.messageId);
 

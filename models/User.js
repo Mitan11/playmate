@@ -51,7 +51,7 @@ class User {
     }
 
     // Save new user to database
-    static async save(userData , conn = db) {
+    static async save(userData, conn = db) {
         const { user_email, user_password, first_name, last_name, profile_image } = userData;
 
         try {
@@ -72,7 +72,7 @@ class User {
         }
     }
 
-    static async findById(userId , conn = db) {
+    static async findById(userId, conn = db) {
         try {
             const [rows] = await conn.execute(
                 'SELECT user_id, user_email, first_name, last_name, profile_image FROM users WHERE user_id = ?',

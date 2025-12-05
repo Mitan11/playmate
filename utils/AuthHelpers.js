@@ -5,42 +5,63 @@ class AuthHelpers {
 
     // handles password hashing using bcrypt
     async hashPassword(plainPassword) {
-        // checks if there is password provided
-        if (!plainPassword) {
+        try {
+            // checks if there is password provided
+            if (!plainPassword) {
+                throw new Error("Error hashing password");
+            }
+
+            // generate salt and hash password
+            const salt = await bcrypt.genSalt(12);
+            const hashedPassword = await bcrypt.hash(plainPassword, salt);
+
+            return hashedPassword;
+        } catch (error) {
+            console.error('Error hashing password:', error);
             throw new Error("Error hashing password");
         }
-
-        // generate salt and hash password
-        const salt = await bcrypt.genSalt(12);
-        const hashedPassword = await bcrypt.hash(plainPassword, salt);
-
-        return hashedPassword;
     }
 
     // handles token generation
     async generateToken(payload) {
-        const token = JWT.sign({ id: payload.user_id }, process.env.JWT_SECRET, {
-            expiresIn: process.env.JWT_EXPIRES_IN || '7d',
-        });
+        try {
+            // generate JWT token
+            const token = JWT.sign({ id: payload.user_id }, process.env.JWT_SECRET, {
+                expiresIn: process.env.JWT_EXPIRES_IN || '7d',
+            });
 
-        return token;   
+            return token;
+        } catch (error) {
+            console.error('Error generating token:', error);
+            throw new Error("Error generating token");
+        }
+    }
+
+    // handles token verification
+    verifyToken(token) {
+        try {
+            // verify JWT token
+            const decoded = JWT.verify(token , process.env.JWT_SECRET);
+            return decoded;
+        } catch (error) {
+            console.error('Error verifying token:', error);
+            throw new Error("Error verifying token");
+        }
     }
 
     // handles check for a password validity by comparing the
     // hash with the provided plain password
     async isPasswordValid(hashedPass, plainPass) {
-        // checking if the password is valid
-        const isPasswordValid = await bcrypt.compare(plainPass, hashedPass);
-        return isPasswordValid;
-    }
-
-    // handles user's authorization
-    mustBeLoggedIn(req, res, next) {
         try {
+            // checking if the password is valid
+            const isPasswordValid = await bcrypt.compare(plainPass, hashedPass);
+            return isPasswordValid;
         } catch (error) {
-            throw new Error("You must be logged in to access this resource");
+            console.error('Error validating password:', error);
+            throw new Error("Error validating password");
         }
     }
+
 }
 
 export default new AuthHelpers();
