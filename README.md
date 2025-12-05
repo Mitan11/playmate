@@ -194,6 +194,11 @@ JWT_EXPIRES_IN=7d
 CLOUDINARY_CLOUD_NAME=your_cloud_name
 CLOUDINARY_API_KEY=your_api_key
 CLOUDINARY_SECRET_KEY=your_secret_key
+
+# Email Configuration
+EMAIL=abc@gmail.com
+EMAIL_PASSWORD=qwq qwe qwe
+EMAIL_SERVICE=Gmail
 ```
 
 ### Image Upload Flow
