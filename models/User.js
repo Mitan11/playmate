@@ -21,7 +21,6 @@ class User {
                 last_name VARCHAR(50) NULL,
                 profile_image VARCHAR(165) NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
                 INDEX idx_user_email (user_email)
             )
         `;
