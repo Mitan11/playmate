@@ -3,6 +3,8 @@ import User from "../models/User.js";
 import AuthHelpers from "../utils/AuthHelpers.js";
 import { v2 as cloudinary } from 'cloudinary'
 import db from "../config/db.js";
+import { sendWelcomeEmail } from "../utils/Mail.js";
+import { playmateWelcomeTemplate } from "../utils/emailTemplates.js";
 
 // Initialize database table
 User.createTable().catch(console.error);
@@ -66,6 +68,10 @@ const register = async (req, res) => {
 
         // COMMIT transaction
         await connection.commit();
+
+        // Send welcome email
+        const html = playmateWelcomeTemplate({ name: first_name });
+        await sendWelcomeEmail(user_email, "Welcome to Playmate!", html);
 
         // Respond with success 
         res.status(201).json(Response.success(201, "User registered successfully", result, token));
