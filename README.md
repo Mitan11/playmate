@@ -70,6 +70,10 @@ npm start
 | `/register` | POST | Register new user | ❌ |
 | `/login` | POST | User login | ❌ |
 | `/check-email` | POST | Check email availability | ❌ |
+| `/reset-password-email` | POST | Send password reset OTP | ❌ |
+| `/verify-otp` | POST | Verify password reset OTP | ❌ |
+| `/reset-password` | POST | Reset password with new password | ❌ |
+| `/change-password` | POST | Change password (authenticated) | ✅ |
 | `/health` | GET | API health check | ❌ |
 
 ### Standard Response Format
@@ -242,6 +246,132 @@ curl -X POST http://localhost:4000/api/v1/auth/register \
 }
 ```
 
+## 🔐 Password Management APIs
+
+### Send Password Reset Email
+
+**POST** `/api/v1/auth/reset-password-email`
+
+**Request Body**:
+```json
+{
+    "user_email": "user@example.com"
+}
+```
+
+**Success Response (200)**:
+```json
+{
+    "status": true,
+    "statusCode": 200,
+    "message": "Password reset OTP sent",
+    "data": {
+        "resetOtpSent": true
+    },
+    "timestamp": "2025-12-07T14:35:27.120Z"
+}
+```
+
+**Process**: Generates 4-digit OTP → Sends email with beautiful template → Stores OTP in secure cookie (5 min expiry)
+
+### Verify OTP
+
+**POST** `/api/v1/auth/verify-otp`
+
+**Request Body**:
+```json
+{
+    "otp": "1234"
+}
+```
+
+**Success Response (200)**:
+```json
+{
+    "status": true,
+    "statusCode": 200,
+    "message": "OTP verified successfully",
+    "data": null,
+    "timestamp": "2025-12-07T14:35:27.120Z"
+}
+```
+
+**Process**: Validates OTP against cookie → Clears cookie on success → Enables password reset
+
+### Reset Password
+
+**POST** `/api/v1/auth/reset-password`
+
+**Request Body**:
+```json
+{
+    "user_email": "user@example.com",
+    "new_password": "NewPassword123!"
+}
+```
+
+**Success Response (200)**:
+```json
+{
+    "status": true,
+    "statusCode": 200,
+    "message": "Password has been reset successfully",
+    "data": null,
+    "timestamp": "2025-12-07T14:35:27.120Z"
+}
+```
+
+**Process**: Validates new password → Hashes with bcrypt → Updates database
+
+### Change Password (Protected)
+
+**POST** `/api/v1/auth/change-password`
+
+**Headers**:
+```
+Authorization: Bearer <jwt-token>
+Content-Type: application/json
+```
+
+**Request Body**:
+```json
+{
+    "currentPassword": "OldPassword123!",
+    "newPassword": "NewPassword123!"
+}
+```
+
+**Success Response (200)**:
+```json
+{
+    "status": true,
+    "statusCode": 200,
+    "message": "Password changed successfully",
+    "data": null,
+    "timestamp": "2025-12-07T14:35:27.120Z"
+}
+```
+
+**Process**: Extracts user from JWT → Validates current password → Hashes new password → Updates database
+
+### Password Security Requirements
+
+All password fields must meet these criteria:
+- **Length**: 8-60 characters
+- **Lowercase**: At least one letter (a-z)
+- **Uppercase**: At least one letter (A-Z)  
+- **Number**: At least one digit (0-9)
+- **Special**: At least one symbol (@$!%*?&)
+
+### OTP Email Template
+
+Users receive a beautiful HTML email with:
+- 🔐 **Professional Design**: Green theme with Playmate branding
+- **4-Digit OTP**: Large, clearly displayed verification code
+- **Security Warning**: Instructions not to share the OTP
+- **Expiry Notice**: 10-minute validity period
+- **Auto-Generated**: No-reply email address
+
 ## 🗄️ Database Schema
 
 ### Users Table
@@ -363,6 +493,46 @@ transporter: {
 - At least one uppercase letter
 - At least one number
 - At least one special character (@$!%*?&)
+
+## 🔄 Password Management Workflows
+
+### Forgot Password Flow (3 Steps)
+
+For users who don't remember their current password:
+
+```mermaid
+graph TD
+    A[Send Reset Email] --> B[Check Email & Get OTP]
+    B --> C[Verify OTP]
+    C --> D[Reset Password]
+    D --> E[Login with New Password]
+```
+
+**Step 1**: `POST /reset-password-email` with email
+**Step 2**: `POST /verify-otp` with 4-digit OTP from email  
+**Step 3**: `POST /reset-password` with email + new password
+
+### Change Password Flow (1 Step)
+
+For authenticated users who know their current password:
+
+```mermaid
+graph TD
+    A[Authenticated User] --> B[Change Password]
+    B --> C[Continue Using App]
+```
+
+**Step 1**: `POST /change-password` with current + new password + JWT token
+
+### Security Features
+
+- **🍪 Cookie-based OTP**: HTTP-only cookies prevent XSS attacks
+- **⏰ Time Expiry**: 5-minute OTP validity window
+- **🔒 JWT Protection**: Change password requires authentication
+- **🧂 Salt Hashing**: bcrypt with dynamic salt generation
+- **📧 Email Verification**: OTP sent to verified email address
+- **🚫 Rate Limiting**: Prevents brute force attacks
+- **✅ Input Validation**: Comprehensive server-side validation
 
 ### 📁 Project Structure
 

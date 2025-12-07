@@ -62,6 +62,18 @@ class AuthHelpers {
         }
     }
 
+    // Generate OTP token
+    generateOtp() {
+        try {
+            // generate 4 digit otp
+            const otp = Math.floor(1000 + Math.random() * 9000).toString(); 
+
+        return otp;
+        } catch (error) {
+            console.error('Error generating OTP token:', error);
+            throw new Error("Error generating OTP token");
+        }
+    }
 }
 
 export default new AuthHelpers();

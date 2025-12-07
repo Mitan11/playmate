@@ -239,5 +239,70 @@ export const playmateWelcomeTemplate = ({
 
 </body>
 </html>
-`;
+    `;
+};
+
+// Password Reset Email Template
+export const resetPasswordTemplate = (otp) => {
+    return `
+    <div style="
+        font-family: Arial, sans-serif;
+        max-width: 600px;
+        margin: auto;
+        padding: 24px;
+        border-radius: 14px;
+        background: #F3F8F3;
+        border: 1px solid #D8EED8;
+    ">
+          
+        <h2 style="
+            color: #2E7D32;
+            text-align: center;
+            margin-bottom: 10px;
+        ">
+            🔐 Password Reset Request
+        </h2>
+
+        <p style="font-size: 15px; color: #333;">
+            Hello,
+        </p>
+
+        <p style="font-size: 15px; color: #333;">
+            We received a request to reset your password for your <strong>Playmate</strong> account.
+            Use the OTP below to continue. This OTP is valid for 
+            <strong>10 minutes</strong>.
+        </p>
+
+        <div style="
+            text-align: center;
+            font-size: 28px;
+            letter-spacing: 4px;
+            font-weight: bold;
+            background: #E8F5E9;
+            color: #2E7D32;
+            padding: 14px;
+            border-radius: 8px;
+            margin: 24px 0;
+            border: 1px solid #CDEACC;
+        ">
+            ${otp}
+        </div>
+
+        <p style="font-size: 14px; color: #444;">
+            ⚠️ <strong>Do not share this OTP with anyone.</strong><br>
+            If you didn't request this, you can safely ignore this email.
+        </p>
+
+        <br>
+
+        <p style="text-align: center; color: #777; font-size: 12px;">
+            ──────────────────────────────────
+        </p>
+
+        <p style="font-size: 12px; color: gray; text-align: center;">
+            This is an automated message from <strong>Playmate</strong>. 
+            Please do not reply to this email.
+        </p>
+    </div>
+    `;
 };

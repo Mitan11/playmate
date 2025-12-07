@@ -84,6 +84,20 @@ class User {
         }
     }
 
+    static async updatePassword(email, hashedPassword, conn = db) {
+        try {
+            const query = `
+        UPDATE users 
+        SET user_password = ?
+        WHERE user_email = ?
+    `;
+            await conn.execute(query, [hashedPassword, email]);
+        } catch (error) {
+            console.error('Error updating user password:', error);
+            throw error;
+        }
+    }
+
 }
 
 export default User;

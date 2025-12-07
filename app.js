@@ -6,7 +6,7 @@ import db from "./config/db.js";
 import response from "./utils/Response.js";
 import authRouter from "./routes/authRouter.js";
 import connectCloudinary from "./utils/Cloudinary.js";
-
+import cookie from "cookie-parser";
 class App {
     constructor() {
         // app config
@@ -21,12 +21,15 @@ class App {
     initializeMiddlewares() {
         // middleware
         this.app.use(express.json());
+        this.app.use(express.urlencoded({ extended: true }));
         this.app.use(cors(
             {
                 origin: '*',
+                credentials: true,
                 methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS']
             }
         ));
+        this.app.use(cookie());
     }
 
     initializeRoutes() {
