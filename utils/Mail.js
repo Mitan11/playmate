@@ -34,3 +34,25 @@ export const sendWelcomeEmail = async (to, subject, html) => {
         throw new Error("Email could not be sent");
     }
 };
+
+export const sendEmail = async (to, subject, html) => {
+    try {
+        // Email options
+        const mailOptions = {
+            from: `"Playmate" <${process.env.EMAIL}>`,
+            to,
+            subject,
+            html,
+        };
+
+        // Send email
+        const result = await transporter.sendMail(mailOptions);
+        console.log("Email sent:", result.messageId);
+        return result;
+
+    }
+    catch (error) {
+        console.error("Email sending failed:", error);
+        throw new Error("Email could not be sent");
+    }
+};

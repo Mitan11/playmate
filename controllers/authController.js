@@ -3,9 +3,10 @@ import User from "../models/User.js";
 import AuthHelpers from "../utils/AuthHelpers.js";
 import { v2 as cloudinary } from 'cloudinary'
 import db from "../config/db.js";
-import { sendWelcomeEmail } from "../utils/Mail.js";
-import { playmateWelcomeTemplate } from "../utils/emailTemplates.js";
+import { sendEmail, sendWelcomeEmail } from "../utils/Mail.js";
+import { playmateWelcomeTemplate, resetPasswordTemplate } from "../utils/emailTemplates.js";
 import os from "os";
+import { send } from "process";
 
 // Initialize database table
 User.createTable().catch(console.error);
@@ -205,4 +206,150 @@ const checkEmailExists = async (req, res) => {
     }
 }
 
-export { register, login, healthCheck, checkEmailExists };
+const sendResetPasswordEmail = async (req, res) => {
+    try {
+        const { user_email } = req.body;
+
+        // Find user by email
+        const user = await User.findByEmail(user_email);
+
+        if (!user) {
+            return res.status(404).json(Response.error(404, "User not found"));
+        }
+
+        // Generate OTP
+        const resetOtp = AuthHelpers.generateOtp();
+
+        // Prepare email template
+        const resetPasswordTemplateContent = resetPasswordTemplate(resetOtp);
+
+        // Send Email
+        await sendEmail(
+            user_email,
+            "Password Reset Request",
+            resetPasswordTemplateContent
+        );
+
+        // Save OTP in cookie
+        res.cookie("resetOtp", resetOtp, {
+            httpOnly: true,
+            secure: false, // set true in production HTTPS
+            maxAge: 5 * 60 * 1000, // 5 minutes
+        });
+
+        return res.status(200).json(
+            Response.success(200, "Password reset OTP sent", {
+                resetOtpSent: true,
+            })
+        );
+
+    } catch (error) {
+        console.error("Password reset error:", error);
+        return res.status(500).json(
+            Response.error(500, "Password reset failed", error.message)
+        );
+    }
+};
+
+const verifyOtp = async (req, res) => {
+    try{
+
+        const { otp } = req.body;
+
+        console.log("Received OTP:", otp);
+
+        // Get OTP from cookie
+        const resetOtp = req.cookies.resetOtp;
+
+        console.log("OTP from cookie:", resetOtp);
+
+        if (!resetOtp) {
+            return res.status(400).json(
+                Response.error(400, "OTP has expired or is missing")
+            );
+        }
+
+        if (otp != resetOtp) {
+            return res.status(400).json(
+                Response.error(400, "Invalid OTP provided")
+            );
+        }
+
+        res.clearCookie("resetOtp");
+
+        // OTP is valid, proceed with password reset or next steps
+        return res.status(200).json(
+            Response.success(200, "OTP verified successfully")
+        );
+    }catch(error){
+        console.error("OTP verification error:", error);
+        return res.status(500).json(
+            Response.error(500, "OTP verification failed", error.message)
+        );
+    }
+};
+
+const resetPassword = async (req, res) => {
+    try {
+        const { user_email, new_password } = req.body;
+
+        // Find user by email
+        const user = await User.findByEmail(user_email);
+
+        // If user not found
+        if (!user) {
+            return res.status(404).json(Response.error(404, "User not found"));
+        }
+
+        // Hash new password
+        const hashedPassword = await AuthHelpers.hashPassword(new_password);
+
+        // Update user's password in the database
+        await User.updatePassword(user_email, hashedPassword);
+
+        return res.status(200).json(
+            Response.success(200, "Password has been reset successfully")
+        );
+    } catch (error) {
+        console.error("Reset password error:", error);
+        return res.status(500).json(
+            Response.error(500, "Reset password failed", error.message)
+        );
+    } 
+}
+
+const changePassword = async (req, res) => {
+    try {
+        const { currentPassword, newPassword } = req.body;
+        const user_email = req.user.user_email; // Get email from JWT token
+
+        // Find user by email
+        const user = await User.findByEmail(user_email);
+
+        if (!user) {
+            return res.status(404).json(Response.error(404, "User not found"));
+        }
+
+        // Validate current password
+        const isPasswordValid = await AuthHelpers.isPasswordValid(user.user_password, currentPassword);
+
+        if (!isPasswordValid) {
+            return res.status(400).json(Response.error(400, "Current password is incorrect"));
+        }
+
+        // Hash new password
+        const hashedPassword = await AuthHelpers.hashPassword(newPassword);
+
+        // Update user's password in the database
+        await User.updatePassword(user_email, hashedPassword);
+
+        // sending the response
+        return res.status(200).json(Response.success(200, "Password changed successfully"));
+    } catch (error) {
+        console.error("Error changing password:", error);
+        return res.status(500).json(Response.error(500, "Failed to change password", error.message));
+    }
+}
+
+
+export { register, login, healthCheck, checkEmailExists, sendResetPasswordEmail, verifyOtp, resetPassword, changePassword };

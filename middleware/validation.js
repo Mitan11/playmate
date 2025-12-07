@@ -48,6 +48,52 @@ export const validateUserLogin = [
         .withMessage('Password length is invalid')
 ];
 
+// Reset password email validation
+export const validateResetPasswordEmail = [
+    body('user_email')
+        .trim()
+        .isEmail()
+        .withMessage('Please enter a valid email address')
+        .normalizeEmail()
+];
+
+// OTP verification validation
+export const validateOtp = [
+    body('otp')
+        .isLength({ min: 4, max: 4 })
+        .withMessage('OTP must be 4 digits')
+        .isNumeric()
+        .withMessage('OTP must contain only numbers')
+];
+
+// Reset password validation
+export const validateResetPassword = [
+    body('user_email')
+        .trim()
+        .isEmail()
+        .withMessage('Please enter a valid email address')
+        .normalizeEmail(),
+
+    body('new_password')
+        .isLength({ min: 8, max: 60 })
+        .withMessage('Password must be 8 characters long')
+        .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&].*$/)
+        .withMessage('Password must contain at least one lowercase letter, one uppercase letter, one number, and one special character')
+];
+
+// Change password validation
+export const validateChangePassword = [
+    body('currentPassword')
+        .notEmpty()
+        .withMessage('Current password is required'),
+
+    body('newPassword')
+        .isLength({ min: 8, max: 60 })
+        .withMessage('New password must be 8 characters long')
+        .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&].*$/)
+        .withMessage('New password must contain at least one lowercase letter, one uppercase letter, one number, and one special character')
+];
+
 // Mobile-friendly validation error handler middleware
 export const handleValidationErrors = (req, res, next) => {
     const errors = validationResult(req);
