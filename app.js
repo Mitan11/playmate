@@ -6,7 +6,7 @@ import db from "./config/db.js";
 import response from "./utils/Response.js";
 import authRouter from "./routes/authRouter.js";
 import connectCloudinary from "./utils/Cloudinary.js";
-import cookie from "cookie-parser";
+
 class App {
     constructor() {
         // app config
@@ -22,14 +22,16 @@ class App {
         // middleware
         this.app.use(express.json());
         this.app.use(express.urlencoded({ extended: true }));
-        this.app.use(cors(
-            {
-                origin: '*',
-                credentials: true,
-                methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS']
-            }
-        ));
-        this.app.use(cookie());
+        // Trust proxy (needed when behind load balancers/CDNs to set secure cookies)
+        this.app.set('trust proxy', 1);
+
+        // Replace permissive CORS with a specific origin and credentials support
+        this.app.use(cors({
+            origin: process.env.CLIENT_URL || 'http://localhost:3000', // set your frontend URL
+            credentials: true,
+            methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+            allowedHeaders: ['Content-Type', 'Authorization']
+        }));
     }
 
     initializeRoutes() {
@@ -57,4 +59,4 @@ class App {
 
 // Start the application
 const app = new App();
-app.listen(); 
+app.listen();

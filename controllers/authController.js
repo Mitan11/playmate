@@ -230,16 +230,9 @@ const sendResetPasswordEmail = async (req, res) => {
             resetPasswordTemplateContent
         );
 
-        // Save OTP in cookie
-        res.cookie("resetOtp", resetOtp, {
-            httpOnly: true,
-            secure: false, // set true in production HTTPS
-            maxAge: 5 * 60 * 1000, // 5 minutes
-        });
-
         return res.status(200).json(
             Response.success(200, "Password reset OTP sent", {
-                resetOtpSent: true,
+                resetOtp: resetOtp // for testing purposes only,
             })
         );
 
@@ -251,43 +244,6 @@ const sendResetPasswordEmail = async (req, res) => {
     }
 };
 
-const verifyOtp = async (req, res) => {
-    try{
-
-        const { otp } = req.body;
-
-        console.log("Received OTP:", otp);
-
-        // Get OTP from cookie
-        const resetOtp = req.cookies.resetOtp;
-
-        console.log("OTP from cookie:", resetOtp);
-
-        if (!resetOtp) {
-            return res.status(400).json(
-                Response.error(400, "OTP has expired or is missing")
-            );
-        }
-
-        if (otp != resetOtp) {
-            return res.status(400).json(
-                Response.error(400, "Invalid OTP provided")
-            );
-        }
-
-        res.clearCookie("resetOtp");
-
-        // OTP is valid, proceed with password reset or next steps
-        return res.status(200).json(
-            Response.success(200, "OTP verified successfully")
-        );
-    }catch(error){
-        console.error("OTP verification error:", error);
-        return res.status(500).json(
-            Response.error(500, "OTP verification failed", error.message)
-        );
-    }
-};
 
 const resetPassword = async (req, res) => {
     try {
@@ -352,4 +308,4 @@ const changePassword = async (req, res) => {
 }
 
 
-export { register, login, healthCheck, checkEmailExists, sendResetPasswordEmail, verifyOtp, resetPassword, changePassword };
+export { register, login, healthCheck, checkEmailExists, sendResetPasswordEmail, resetPassword, changePassword };

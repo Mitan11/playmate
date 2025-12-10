@@ -1,6 +1,6 @@
 import express from 'express';
-import { changePassword, checkEmailExists, healthCheck, login, register, resetPassword, sendResetPasswordEmail, verifyOtp, } from '../controllers/authController.js';
-import { handleValidationErrors, validateUserLogin, validateUserRegistration, validateResetPasswordEmail, validateOtp, validateResetPassword, validateChangePassword } from '../middleware/validation.js';
+import { changePassword, checkEmailExists, healthCheck, login, register, resetPassword, sendResetPasswordEmail, } from '../controllers/authController.js';
+import { handleValidationErrors, validateUserLogin, validateUserRegistration, validateResetPasswordEmail, validateResetPassword, validateChangePassword } from '../middleware/validation.js';
 import upload from '../middleware/multer.js';
 import { verifyToken } from '../middleware/authUser.js';
 
@@ -20,9 +20,6 @@ authRouter.post('/check-email', checkEmailExists);
 
 // reset password email
 authRouter.post('/reset-password-email', validateResetPasswordEmail, handleValidationErrors, sendResetPasswordEmail);
-
-// verify otp
-authRouter.post('/verify-otp', validateOtp, handleValidationErrors, verifyOtp);
 
 // reset password route
 authRouter.post('/reset-password', validateResetPassword, handleValidationErrors, resetPassword);
