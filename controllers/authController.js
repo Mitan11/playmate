@@ -68,9 +68,10 @@ const register = async (req, res) => {
         const token = await AuthHelpers.generateToken(result);
 
         // Send welcome email
+        console.log("Sending welcome email to:", user_email);
         const html = playmateWelcomeTemplate({ name: first_name });
-        await sendWelcomeEmail(user_email, "Welcome to Playmate!", html);
-        
+        const emailResult = await sendWelcomeEmail(user_email, "Welcome to Playmate!", html);
+        console.log("Welcome email result:", emailResult);
         // COMMIT transaction
         await connection.commit();
 
