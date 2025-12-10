@@ -67,12 +67,12 @@ const register = async (req, res) => {
         //  generate auth token
         const token = await AuthHelpers.generateToken(result);
 
-        // COMMIT transaction
-        await connection.commit();
-
         // Send welcome email
         const html = playmateWelcomeTemplate({ name: first_name });
         await sendWelcomeEmail(user_email, "Welcome to Playmate!", html);
+        
+        // COMMIT transaction
+        await connection.commit();
 
         // Respond with success 
         res.status(201).json(Response.success(201, "User registered successfully", result, token));
