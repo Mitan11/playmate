@@ -31,7 +31,7 @@ export const sendWelcomeEmail = async (to, subject, html) => {
 
     } catch (error) {
         console.error("Email sending failed:", error);
-        throw new Error("Email could not be sent");
+        // throw new Error("Email could not be sent");
     }
 };
 
@@ -53,6 +53,6 @@ export const sendEmail = async (to, subject, html) => {
     }
     catch (error) {
         console.error("Email sending failed:", error);
-        throw new Error("Email could not be sent");
+        // throw new Error("Email could not be sent");
     }
 };
