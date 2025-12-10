@@ -6,7 +6,6 @@ import db from "../config/db.js";
 import { sendEmail, sendWelcomeEmail } from "../utils/Mail.js";
 import { playmateWelcomeTemplate, resetPasswordTemplate } from "../utils/emailTemplates.js";
 import os from "os";
-import { send } from "process";
 
 // Initialize database table
 User.createTable().catch(console.error);
