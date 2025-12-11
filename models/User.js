@@ -98,6 +98,43 @@ class User {
         }
     }
 
+    static async updateUserDetails(userDetails, conn = db) {
+        try {
+            const { first_name, last_name, profile_image, user_email } = userDetails;
+
+            // Build dynamic query to only update provided fields
+            let query = 'UPDATE users SET ';
+            const params = [];
+            const updates = [];
+
+            if (first_name !== undefined) {
+                updates.push('first_name = ?');
+                params.push(first_name);
+            }
+            if (last_name !== undefined) {
+                updates.push('last_name = ?');
+                params.push(last_name);
+            }
+            if (profile_image !== undefined) {
+                updates.push('profile_image = ?');
+                params.push(profile_image);
+            }
+
+            if (updates.length === 0) {
+                throw new Error('No fields to update');
+            }
+
+            query += updates.join(', ') + ' WHERE user_email = ?';
+            params.push(user_email);
+
+            const [result] = await conn.execute(query, params);
+            return result.affectedRows > 0;
+        } catch (error) {
+            console.error('Error updating user details:', error);
+            throw error;
+        }
+    }
+
 }
 
 export default User;

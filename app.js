@@ -6,6 +6,8 @@ import db from "./config/db.js";
 import response from "./utils/Response.js";
 import authRouter from "./routes/authRouter.js";
 import connectCloudinary from "./utils/Cloudinary.js";
+import sportRouter from "./routes/sportRouter.js";
+import userSportRouter from "./routes/userRouter.js";
 
 class App {
     constructor() {
@@ -22,8 +24,6 @@ class App {
         // middleware
         this.app.use(express.json());
         this.app.use(express.urlencoded({ extended: true }));
-        // Trust proxy (needed when behind load balancers/CDNs to set secure cookies)
-        this.app.set('trust proxy', 1);
 
         // Replace permissive CORS with a specific origin and credentials support
         this.app.use(cors({
@@ -40,6 +40,8 @@ class App {
             res.status(200).json(response.success(200, "Api is working"));
         })
         this.app.use('/api/v1/auth', authRouter);
+        this.app.use('/api/v1/sports', sportRouter);
+        this.app.use('/api/v1/user', userSportRouter);
 
     }
 
