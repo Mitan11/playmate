@@ -253,6 +253,15 @@ For detailed API documentation, see [docs/API.md](docs/API.md)
 | `/reset-password` | POST | Reset password with OTP | ❌ |
 | `/change-password` | POST | Change password | ✅ |
 | `/health` | GET | Health check | ❌ |
+| `/sports/health` | GET | Sports service health | ❌ |
+| `/sports/addNewSport` | POST | Create sport | ✅ (admin) |
+| `/sports/getAllSports` | GET | List sports | ❌ |
+| `/sports/updateSport/:sportId` | PUT | Update sport | ✅ (admin) |
+| `/sports/deleteSport/:sportId` | DELETE | Delete sport | ✅ (admin) |
+| `/users/updateDetails` | PUT | Update user details (with image) | ✅ |
+| `/users/userSport` | POST | Add sport to user | ✅ |
+| `/users/deleteUserSport/:user_id/:sport_id` | DELETE | Remove sport from user | ✅ |
+| `/users/profile/:userId` | GET | Get user profile | ✅ |
 
 ### Authentication
 
@@ -265,32 +274,86 @@ Authorization: Bearer <your_jwt_token>
 
 ## 📍 Endpoint Documentation
 
-### 1. User Registration
+<!-- Already documented above: Change Password (Section 6) and Health Check (Section 7) -->
+<!-- Reference:
+6. Change Password  → POST /api/v1/auth/change-password
+7. Health Check     → GET  /api/v1/auth/health
+-->
 
-**POST** `/api/v1/auth/register`
+### 8. List Sports
 
-Register a new user account with optional profile image upload.
+**GET** `/api/v1/sports`
+
+Retrieve all available sports.
 
 #### Request
 
-**Content-Type**: `multipart/form-data`
+No body or authentication required.
 
-**Fields**:
+#### Response
 
-| Field | Type | Required | Max Length | Description |
-|-------|------|----------|------------|-------------|
-| user_email | string | ✅ Yes | 100 | Valid email address (must be unique) |
-| user_password | string | ✅ Yes | 60 | Strong password (see requirements below) |
-| first_name | string | ✅ Yes | 50 | User's first name |
-| last_name | string | ❌ No | 50 | User's last name |
-| profile_image | file | ❌ No | 5MB | Profile image (JPG, JPEG, PNG) |
+**Success (200 OK)**:
+```json
+{
+  "status": true,
+  "statusCode": 200,
+  "message": "Sports fetched successfully",
+  "data": [
+    { "sport_id": 1, "sport_name": "Football", "description": "Team field sport", "created_at": "2025-01-04T10:00:00.000Z", "updated_at": "2025-01-04T10:00:00.000Z" },
+    { "sport_id": 2, "sport_name": "Basketball", "description": "Indoor team sport", "created_at": "2025-01-04T10:00:00.000Z", "updated_at": "2025-01-04T10:00:00.000Z" }
+  ],
+  "timestamp": "2025-01-04T10:30:00.000Z"
+}
+```
 
-**Password Requirements**:
-- 8-60 characters
-- At least 1 uppercase letter (A-Z)
-- At least 1 lowercase letter (a-z)
-- At least 1 digit (0-9)
-- At least 1 special character (!@#$%^&*()_+-=[]{}|;:,.<>?)
+#### Error Responses
+
+- 500 Internal Server Error:
+```json
+{ "status": false, "statusCode": 500, "message": "Server error while fetching sports", "timestamp": "2025-01-04T10:30:00.000Z" }
+```
+
+#### cURL Example
+
+```bash
+curl -X GET http://localhost:4000/api/v1/sports
+```
+
+#### Special Notes
+
+- Consider pagination for large catalogs via query params (page, limit).
+- Responses are indexed-friendly; ensure DB index on sport_name.
+
+---
+
+### 9. Create Sport
+
+**POST** `/api/v1/sports`
+
+Create a new sport entry.
+
+#### Request
+
+**Headers**:
+```
+Authorization: Bearer <admin_jwt_token>
+Content-Type: application/json
+```
+
+**Body**:
+```json
+{
+  "sport_name": "Badminton",
+  "description": "Racquet sport played by two or four players"
+}
+```
+
+**Validation Rules**:
+- sport_name: required, string, 2-100 chars, unique (case-insensitive)
+- description: optional, max 255 chars
+
+**Role Requirements**:
+- Admin only
 
 #### Response
 
@@ -299,303 +362,88 @@ Register a new user account with optional profile image upload.
 {
   "status": true,
   "statusCode": 201,
-  "message": "User registered successfully",
+  "message": "Sport created successfully",
   "data": {
-    "user_id": 1,
-    "user_email": "john.doe@example.com",
-    "first_name": "John",
-    "last_name": "Doe",
-    "profile_image": "https://res.cloudinary.com/demo/image/upload/v1/playmate/user_1.jpg",
+    "sport_id": 12,
+    "sport_name": "Badminton",
+    "description": "Racquet sport played by two or four players",
     "created_at": "2025-01-04T10:30:00.000Z"
   },
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
   "timestamp": "2025-01-04T10:30:00.000Z"
 }
 ```
 
-**Error - Email Exists (409 Conflict)**:
-```json
-{
-  "status": false,
-  "statusCode": 409,
-  "message": "User with this email already exists",
-  "timestamp": "2025-01-04T10:30:00.000Z"
-}
-```
+#### Error Responses
 
-**Error - Validation Failed (400 Bad Request)**:
+- 400 Validation Failed:
 ```json
 {
   "status": false,
   "statusCode": 400,
   "message": "Validation failed",
-  "errors": [
-    {
-      "field": "user_email",
-      "message": "Please enter a valid email address"
-    },
-    {
-      "field": "user_password",
-      "message": "Password must contain at least one uppercase letter"
-    }
-  ],
+  "errors": [{ "field": "sport_name", "message": "Sport name is required" }],
   "timestamp": "2025-01-04T10:30:00.000Z"
 }
 ```
+- 401 Unauthorized / 403 Forbidden:
+```json
+{ "status": false, "statusCode": 403, "message": "Admin access required", "timestamp": "2025-01-04T10:30:00.000Z" }
+```
+- 409 Conflict (duplicate):
+```json
+{ "status": false, "statusCode": 409, "message": "Sport with this name already exists", "timestamp": "2025-01-04T10:30:00.000Z" }
+```
 
-#### Example Request
+#### cURL Example
 
 ```bash
-curl -X POST http://localhost:4000/api/v1/auth/register \
-  -F "user_email=john.doe@example.com" \
-  -F "user_password=SecurePass123!" \
-  -F "first_name=John" \
-  -F "last_name=Doe" \
-  -F "profile_image=@/path/to/image.jpg"
-```
-
-**JavaScript Example**:
-```javascript
-const formData = new FormData();
-formData.append('user_email', 'john.doe@example.com');
-formData.append('user_password', 'SecurePass123!');
-formData.append('first_name', 'John');
-formData.append('last_name', 'Doe');
-formData.append('profile_image', fileInput.files[0]);
-
-const response = await fetch('http://localhost:4000/api/v1/auth/register', {
-  method: 'POST',
-  body: formData
-});
-
-const data = await response.json();
-if (data.status) {
-  localStorage.setItem('authToken', data.token);
-  console.log('Registration successful!');
-}
-```
-
-**Features**:
-- ✅ Automatic email validation
-- ✅ Password strength validation
-- ✅ Duplicate email detection
-- ✅ Profile image upload to Cloudinary
-- ✅ Default avatar if no image provided
-- ✅ Welcome email sent automatically
-- ✅ JWT token generated and returned
-
----
-
-### 2. User Login
-
-**POST** `/api/v1/auth/login`
-
-Authenticate user credentials and receive JWT token.
-
-#### Request
-
-**Content-Type**: `application/json`
-
-**Body**:
-```json
-{
-  "user_email": "john.doe@example.com",
-  "user_password": "SecurePass123!"
-}
-```
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| user_email | string | ✅ Yes | Registered email address |
-| user_password | string | ✅ Yes | User's password |
-
-#### Response
-
-**Success (200 OK)**:
-```json
-{
-  "status": true,
-  "statusCode": 200,
-  "message": "Login successful",
-  "data": {
-    "user_id": 1,
-    "user_email": "john.doe@example.com",
-    "first_name": "John",
-    "last_name": "Doe",
-    "profile_image": "https://res.cloudinary.com/demo/image/upload/v1/playmate/user_1.jpg",
-    "created_at": "2025-01-04T10:30:00.000Z"
-  },
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "timestamp": "2025-01-04T10:30:00.000Z"
-}
-```
-
-**Error - Invalid Credentials (400 Bad Request)**:
-```json
-{
-  "status": false,
-  "statusCode": 400,
-  "message": "Invalid email or password",
-  "timestamp": "2025-01-04T10:30:00.000Z"
-}
-```
-
-#### Example Request
-
-```bash
-curl -X POST http://localhost:4000/api/v1/auth/login \
+curl -X POST http://localhost:4000/api/v1/sports \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <admin_jwt_token>" \
   -d '{
-    "user_email": "john.doe@example.com",
-    "user_password": "SecurePass123!"
+    "sport_name": "Badminton",
+    "description": "Racquet sport played by two or four players"
   }'
 ```
 
-**JavaScript Example**:
-```javascript
-const response = await fetch('http://localhost:4000/api/v1/auth/login', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({
-    user_email: 'john.doe@example.com',
-    user_password: 'SecurePass123!'
-  })
-});
+#### Special Notes
 
-const data = await response.json();
-if (data.status) {
-  // Store token securely (use httpOnly cookie in production)
-  sessionStorage.setItem('authToken', data.token);
-  console.log('Login successful!');
-}
-```
-
-**Features**:
-- ✅ Secure password comparison using bcrypt
-- ✅ Returns complete user profile
-- ✅ JWT token with 7-day expiration (configurable)
-- ✅ Failed login attempts logged for security
+- Unique constraint enforced on sport_name.
+- All writes audited via timestamps.
 
 ---
 
-### 3. Check Email Availability
+### 10. Update Sport
 
-**POST** `/api/v1/auth/check-email`
+**PUT** `/api/v1/sports/:id`
 
-Check if an email address is available for registration.
+Update sport details by ID.
 
 #### Request
 
-**Content-Type**: `application/json`
+**Headers**:
+```
+Authorization: Bearer <admin_jwt_token>
+Content-Type: application/json
+```
+
+**URL Params**:
+- id: number (sport ID)
 
 **Body**:
 ```json
 {
-  "user_email": "john.doe@example.com"
+  "sport_name": "Badminton",
+  "description": "Updated description"
 }
 ```
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| user_email | string | ✅ Yes | Email address to check |
+**Validation Rules**:
+- sport_name: optional, if present 2-100 chars, unique if changed
+- description: optional, max 255 chars
 
-#### Response
-
-**Email Available (200 OK)**:
-```json
-{
-  "status": true,
-  "statusCode": 200,
-  "message": "Email is available",
-  "data": {
-    "available": true,
-    "email": "john.doe@example.com"
-  },
-  "timestamp": "2025-01-04T10:30:00.000Z"
-}
-```
-
-**Email Taken (409 Conflict)**:
-```json
-{
-  "status": false,
-  "statusCode": 409,
-  "message": "Email is already registered",
-  "data": {
-    "available": false,
-    "email": "john.doe@example.com"
-  },
-  "timestamp": "2025-01-04T10:30:00.000Z"
-}
-```
-
-#### Example Request
-
-```bash
-curl -X POST http://localhost:4000/api/v1/auth/check-email \
-  -H "Content-Type: application/json" \
-  -d '{"user_email": "john.doe@example.com"}'
-```
-
-**JavaScript Example (Real-time Validation)**:
-```javascript
-let emailCheckTimeout;
-
-emailInput.addEventListener('input', (e) => {
-  clearTimeout(emailCheckTimeout);
-  
-  emailCheckTimeout = setTimeout(async () => {
-    const email = e.target.value;
-    
-    if (email && isValidEmail(email)) {
-      const response = await fetch('http://localhost:4000/api/v1/auth/check-email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_email: email })
-      });
-      
-      const data = await response.json();
-      
-      if (data.statusCode === 409) {
-        showError('This email is already registered');
-      } else {
-        showSuccess('✓ Email is available');
-      }
-    }
-  }, 500); // Debounce: Wait 500ms after user stops typing
-});
-```
-
-**Use Cases**:
-- ✅ Real-time email validation in registration forms
-- ✅ Prevent duplicate registrations
-- ✅ Improve user experience with instant feedback
-- ✅ Verify email before password reset
-
----
-
-### 4. Request Password Reset
-
-**POST** `/api/v1/auth/reset-password-email`
-
-Send a password reset OTP to user's email.
-
-#### Request
-
-**Content-Type**: `application/json`
-
-**Body**:
-```json
-{
-  "user_email": "john.doe@example.com"
-}
-```
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| user_email | string | ✅ Yes | Registered email address |
+**Role Requirements**:
+- Admin only
 
 #### Response
 
@@ -604,250 +452,122 @@ Send a password reset OTP to user's email.
 {
   "status": true,
   "statusCode": 200,
-  "message": "Password reset email sent successfully",
-  "data": {
-    "email_sent": true,
-    "email": "john.doe@example.com",
-    "otp_expires_in": "15 minutes"
-  },
+  "message": "Sport updated successfully",
+  "data": { "sport_id": 12, "updated_fields": ["description"] },
   "timestamp": "2025-01-04T10:30:00.000Z"
 }
 ```
 
-**Error - Email Not Found (404 Not Found)**:
+#### Error Responses
+
+- 400 Validation Failed:
 ```json
-{
-  "status": false,
-  "statusCode": 404,
-  "message": "No account found with this email address",
-  "timestamp": "2025-01-04T10:30:00.000Z"
-}
+{ "status": false, "statusCode": 400, "message": "Validation failed", "timestamp": "2025-01-04T10:30:00.000Z" }
+```
+- 401/403 Unauthorized/Forbidden:
+```json
+{ "status": false, "statusCode": 403, "message": "Admin access required", "timestamp": "2025-01-04T10:30:00.000Z" }
+```
+- 404 Not Found:
+```json
+{ "status": false, "statusCode": 404, "message": "Sport not found", "timestamp": "2025-01-04T10:30:00.000Z" }
+```
+- 409 Conflict (duplicate name):
+```json
+{ "status": false, "statusCode": 409, "message": "Sport name already in use", "timestamp": "2025-01-04T10:30:00.000Z" }
 ```
 
-#### Example Request
+#### cURL Example
 
 ```bash
-curl -X POST http://localhost:4000/api/v1/auth/reset-password-email \
+curl -X PUT http://localhost:4000/api/v1/sports/12 \
   -H "Content-Type: application/json" \
-  -d '{"user_email": "john.doe@example.com"}'
-```
-
-**JavaScript Example**:
-```javascript
-const requestPasswordReset = async (email) => {
-  try {
-    const response = await fetch('http://localhost:4000/api/v1/auth/reset-password-email', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user_email: email })
-    });
-    
-    const data = await response.json();
-    
-    if (data.status) {
-      alert('Password reset email sent! Check your inbox.');
-      window.location.href = '/reset-password?email=' + encodeURIComponent(email);
-    } else {
-      alert(data.message);
-    }
-  } catch (error) {
-    alert('Network error. Please try again.');
-  }
-};
-```
-
-**Features**:
-- ✅ Generates 6-digit numeric OTP
-- ✅ OTP valid for 15 minutes
-- ✅ Professional HTML email template
-- ✅ Previous OTPs automatically invalidated
-- ✅ Email includes clear instructions
-
-**Email Content**:
-```
-Subject: Reset Your Playmate Password
-
-Hi John,
-
-We received a request to reset your password.
-
-Your OTP: 123456
-
-This OTP will expire in 15 minutes.
-
-If you didn't request this, please ignore this email.
-
-Best regards,
-Playmate Team
-```
-
----
-
-### 5. Reset Password
-
-**POST** `/api/v1/auth/reset-password`
-
-Reset password using OTP received via email.
-
-#### Request
-
-**Content-Type**: `application/json`
-
-**Body**:
-```json
-{
-  "user_email": "john.doe@example.com",
-  "otp": "123456",
-  "new_password": "NewSecurePass123!"
-}
-```
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| user_email | string | ✅ Yes | Registered email address |
-| otp | string | ✅ Yes | 6-digit OTP from email |
-| new_password | string | ✅ Yes | New password (must meet requirements) |
-
-#### Response
-
-**Success (200 OK)**:
-```json
-{
-  "status": true,
-  "statusCode": 200,
-  "message": "Password reset successful",
-  "data": {
-    "password_updated": true,
-    "email": "john.doe@example.com"
-  },
-  "timestamp": "2025-01-04T10:30:00.000Z"
-}
-```
-
-**Error - Invalid OTP (400 Bad Request)**:
-```json
-{
-  "status": false,
-  "statusCode": 400,
-  "message": "Invalid or expired OTP",
-  "data": {
-    "otp_valid": false
-  },
-  "timestamp": "2025-01-04T10:30:00.000Z"
-}
-```
-
-**Error - Validation Failed (400 Bad Request)**:
-```json
-{
-  "status": false,
-  "statusCode": 400,
-  "message": "Validation failed",
-  "errors": [
-    {
-      "field": "new_password",
-      "message": "Password must be at least 8 characters long"
-    },
-    {
-      "field": "new_password",
-      "message": "Password must contain at least one uppercase letter"
-    }
-  ],
-  "timestamp": "2025-01-04T10:30:00.000Z"
-}
-```
-
-#### Example Request
-
-```bash
-curl -X POST http://localhost:4000/api/v1/auth/reset-password \
-  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <admin_jwt_token>" \
   -d '{
-    "user_email": "john.doe@example.com",
-    "otp": "123456",
-    "new_password": "NewSecurePass123!"
+    "description": "Updated description"
   }'
 ```
 
-**JavaScript Example**:
-```javascript
-const resetPasswordForm = document.getElementById('resetPasswordForm');
+#### Special Notes
 
-resetPasswordForm.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  
-  const formData = {
-    user_email: document.getElementById('email').value,
-    otp: document.getElementById('otp').value,
-    new_password: document.getElementById('newPassword').value
-  };
-  
-  try {
-    const response = await fetch('http://localhost:4000/api/v1/auth/reset-password', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(formData)
-    });
-    
-    const data = await response.json();
-    
-    if (data.status) {
-      alert('Password reset successful! Redirecting to login...');
-      setTimeout(() => window.location.href = '/login', 2000);
-    } else {
-      alert(data.message);
-    }
-  } catch (error) {
-    alert('Network error. Please try again.');
-  }
-});
-```
-
-**Features**:
-- ✅ OTP validation with expiration check
-- ✅ Password strength validation
-- ✅ OTP can only be used once
-- ✅ Password immediately hashed with bcrypt
-- ✅ Automatic OTP invalidation after use
-
-**Password Reset Flow**:
-```
-1. User requests OTP → Email sent with 6-digit code
-2. User receives email → Valid for 15 minutes
-3. User submits OTP + new password → OTP validated
-4. Password updated → OTP invalidated
-5. User redirected to login
-```
+- Partial updates supported; only provided fields are updated.
+- Name change triggers uniqueness check.
 
 ---
 
-### 6. Change Password
+### 11. Delete Sport
 
-**POST** `/api/v1/auth/change-password`
+**DELETE** `/api/v1/sports/:id`
 
-Change password for authenticated user (requires JWT token).
+Delete a sport by ID.
 
 #### Request
 
-**Content-Type**: `application/json`
+**Headers**:
+```
+Authorization: Bearer <admin_jwt_token>
+```
+
+**URL Params**:
+- id: number (sport ID)
+
+#### Response
+
+**Success (200 OK)**:
+```json
+{
+  "status": true,
+  "statusCode": 200,
+  "message": "Sport deleted successfully",
+  "data": { "sport_id": 12, "deleted": true },
+  "timestamp": "2025-01-04T10:30:00.000Z"
+}
+```
+
+#### Error Responses
+
+- 401/403 Unauthorized/Forbidden:
+```json
+{ "status": false, "statusCode": 403, "message": "Admin access required", "timestamp": "2025-01-04T10:30:00.000Z" }
+```
+- 404 Not Found:
+```json
+{ "status": false, "statusCode": 404, "message": "Sport not found", "timestamp": "2025-01-04T10:30:00.000Z" }
+```
+- 409 Conflict (referential integrity):
+```json
+{ "status": false, "statusCode": 409, "message": "Cannot delete sport in use", "timestamp": "2025-01-04T10:30:00.000Z" }
+```
+
+#### cURL Example
+
+```bash
+curl -X DELETE http://localhost:4000/api/v1/sports/12 \
+  -H "Authorization: Bearer <admin_jwt_token>"
+```
+
+#### Special Notes
+
+- Deletions may be blocked if referenced by user_sports (FK constraint).
+- Consider soft-deletion if needed.
+
+---
+
+### 12. Get User Profile
+
+**GET** `/api/v1/users/profile/:userId`
+
+Get a user's profile including their sports.
+
+#### Request
 
 **Headers**:
 ```
 Authorization: Bearer <your_jwt_token>
 ```
 
-**Body**:
-```json
-{
-  "old_password": "OldPass123!",
-  "new_password": "NewSecurePass123!"
-}
-```
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| old_password | string | ✅ Yes | Current password for verification |
-| new_password | string | ✅ Yes | New password (must meet requirements) |
+**URL Params**:
+- userId: number
 
 #### Response
 
@@ -856,226 +576,247 @@ Authorization: Bearer <your_jwt_token>
 {
   "status": true,
   "statusCode": 200,
-  "message": "Password changed successfully",
+  "message": "User profile fetched",
   "data": {
-    "password_updated": true,
-    "user_id": 1
+    "user_id": 1,
+    "user_email": "john.doe@example.com",
+    "first_name": "John",
+    "last_name": "Doe",
+    "profile_image": "https://res.cloudinary.com/demo/image/upload/v1/playmate/user_1.jpg",
+    "sports": [
+      { "sport_id": 2, "sport_name": "Basketball", "skill_level": "intermediate" }
+    ],
+    "created_at": "2025-01-04T10:00:00.000Z",
+    "updated_at": "2025-01-04T10:20:00.000Z"
   },
   "timestamp": "2025-01-04T10:30:00.000Z"
 }
 ```
 
-**Error - Wrong Current Password (400 Bad Request)**:
+#### Error Responses
+
+- 401 Unauthorized:
 ```json
-{
-  "status": false,
-  "statusCode": 400,
-  "message": "Current password is incorrect",
-  "data": {
-    "password_valid": false
-  },
-  "timestamp": "2025-01-04T10:30:00.000Z"
-}
+{ "status": false, "statusCode": 401, "message": "Invalid or expired token", "timestamp": "2025-01-04T10:30:00.000Z" }
+```
+- 404 Not Found:
+```json
+{ "status": false, "statusCode": 404, "message": "User not found", "timestamp": "2025-01-04T10:30:00.000Z" }
 ```
 
-**Error - Unauthorized (401 Unauthorized)**:
-```json
-{
-  "status": false,
-  "statusCode": 401,
-  "message": "Invalid or expired token",
-  "timestamp": "2025-01-04T10:30:00.000Z"
-}
-```
-
-#### Example Request
+#### cURL Example
 
 ```bash
-curl -X POST http://localhost:4000/api/v1/auth/change-password \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
-  -d '{
-    "old_password": "OldPass123!",
-    "new_password": "NewSecurePass123!"
-  }'
+curl -X GET http://localhost:4000/api/v1/users/profile/1 \
+  -H "Authorization: Bearer <your_jwt_token>"
 ```
 
-**JavaScript Example**:
-```javascript
-const changePassword = async (oldPassword, newPassword) => {
-  const token = sessionStorage.getItem('authToken');
-  
-  if (!token) {
-    alert('Please login first');
-    window.location.href = '/login';
-    return;
-  }
-  
-  try {
-    const response = await fetch('http://localhost:4000/api/v1/auth/change-password', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({
-        old_password: oldPassword,
-        new_password: newPassword
-      })
-    });
-    
-    const data = await response.json();
-    
-    if (data.status) {
-      alert('Password changed successfully!');
-      // Optional: Force re-login for security
-      sessionStorage.removeItem('authToken');
-      window.location.href = '/login';
-    } else {
-      if (data.statusCode === 401) {
-        alert('Session expired. Please login again.');
-        window.location.href = '/login';
-      } else {
-        alert(data.message);
-      }
-    }
-  } catch (error) {
-    alert('Network error. Please try again.');
-  }
-};
-```
+#### Special Notes
 
-**Features**:
-- ✅ Requires authentication (JWT token)
-- ✅ Validates current password before change
-- ✅ Ensures new password meets requirements
-- ✅ New password immediately hashed
-- ✅ User session remains valid after change
-- ✅ Recommended: Send email notification about password change
-
-**Security Best Practices**:
-- Require re-authentication for sensitive operations
-- Don't allow new password to match old password
-- Consider invalidating all sessions after password change
-- Log password change events for security monitoring
-- Send email notification to user
+- Only authenticated users can access; consider restricting to self or admin.
+- Ensure minimal PII leakage.
 
 ---
 
-### 7. Health Check
+### 13. Update User Details
 
-**GET** `/api/v1/auth/health`
+**PUT** `/api/v1/users/updateDetails`
 
-Check API and database health status with system metrics.
+Update user details with optional profile image upload.
 
 #### Request
 
-**No body or authentication required**
+**Headers**:
+```
+Authorization: Bearer <your_jwt_token>
+Content-Type: multipart/form-data
+```
+
+**Body (multipart/form-data)**:
+- first_name: string (optional, max 50)
+- last_name: string (optional, max 50)
+- profile_image: file (optional; JPG/JPEG/PNG; ≤5MB)
+
+**Validation Rules**:
+- Names trimmed; only letters, spaces, hyphens, apostrophes
+- profile_image: types: image/jpeg, image/png, image/jpg; size ≤ MAX_FILE_SIZE
 
 #### Response
 
-**Healthy (200 OK)**:
+**Success (200 OK)**:
 ```json
 {
-  "status": "healthy",
+  "status": true,
   "statusCode": 200,
-  "message": "Auth service is running",
+  "message": "User details updated",
   "data": {
-    "service": "playmate-auth",
-    "version": "1.0.0",
-    "uptime": "2 hours 34 minutes 12 seconds",
-    "timestamp": "2025-01-04T10:30:00.000Z",
-    "database": {
-      "status": "connected",
-      "responseTime": "12ms",
-      "connections": {
-        "active": 3,
-        "idle": 7,
-        "total": 10
-      }
-    },
-    "memory": {
-      "used": "45.2 MB",
-      "total": "512 MB",
-      "percentage": "8.8%",
-      "heapUsed": "32.1 MB",
-      "heapTotal": "64 MB"
-    },
-    "cpu": {
-      "usage": "15.3%",
-      "cores": 4
-    },
-    "environment": "development"
+    "user_id": 1,
+    "first_name": "John",
+    "last_name": "Doe",
+    "profile_image": "https://res.cloudinary.com/demo/image/upload/v1/playmate/user_1.jpg",
+    "updated_at": "2025-01-04T10:30:00.000Z"
   },
   "timestamp": "2025-01-04T10:30:00.000Z"
 }
 ```
 
-**Unhealthy (503 Service Unavailable)**:
+#### Error Responses
+
+- 400 Validation Failed:
 ```json
-{
-  "status": "unhealthy",
-  "statusCode": 503,
-  "message": "Service unavailable - Database connection failed",
-  "data": {
-    "service": "playmate-auth",
-    "version": "1.0.0",
-    "database": {
-      "status": "disconnected",
-      "error": "Connection timeout after 30 seconds",
-      "lastAttempt": "2025-01-04T10:29:30.000Z"
-    }
-  },
-  "timestamp": "2025-01-04T10:30:00.000Z"
-}
+{ "status": false, "statusCode": 400, "message": "Validation failed", "timestamp": "2025-01-04T10:30:00.000Z" }
+```
+- 401 Unauthorized:
+```json
+{ "status": false, "statusCode": 401, "message": "Invalid or expired token", "timestamp": "2025-01-04T10:30:00.000Z" }
 ```
 
-#### Example Request
+#### cURL Example
 
 ```bash
-curl -X GET http://localhost:4000/api/v1/auth/health
+curl -X PUT http://localhost:4000/api/v1/users/updateDetails \
+  -H "Authorization: Bearer <your_jwt_token>" \
+  -F "first_name=John" \
+  -F "last_name=Doe" \
+  -F "profile_image=@/path/to/image.jpg"
 ```
 
-**JavaScript Example (Monitoring)**:
-```javascript
-const checkHealth = async () => {
-  try {
-    const response = await fetch('http://localhost:4000/api/v1/auth/health');
-    const data = await response.json();
-    
-    if (data.status === 'healthy') {
-      console.log('✅ Service is healthy');
-      console.log(`Database: ${data.data.database.status}`);
-      console.log(`Uptime: ${data.data.uptime}`);
-      console.log(`Memory: ${data.data.memory.percentage}`);
-    } else {
-      console.error('❌ Service is unhealthy');
-      console.error(`Error: ${data.message}`);
-    }
-  } catch (error) {
-    console.error('❌ Service is unreachable');
-  }
-};
+#### Special Notes
 
-// Check health every 30 seconds
-setInterval(checkHealth, 30000);
+- Images uploaded to Cloudinary; previous image may be replaced.
+- Server enforces file-type and size checks via Multer + Cloudinary.
+
+---
+
+### 14. Add User Sport
+
+**POST** `/api/v1/users/userSport`
+
+Add a sport to the authenticated user with optional skill level.
+
+#### Request
+
+**Headers**:
+```
+Authorization: Bearer <your_jwt_token>
+Content-Type: application/json
 ```
 
-**Use Cases**:
-- ✅ Load balancer health checks
-- ✅ Monitoring and alerting systems
-- ✅ DevOps deployment verification
-- ✅ Quick service status check during development
-- ✅ API uptime monitoring
+**Body**:
+```json
+{
+  "sport_id": 2,
+  "skill_level": "beginner"
+}
+```
 
-**Metrics Provided**:
-- Service name and version
-- Uptime duration
-- Database connectivity and response time
-- Connection pool status
-- Memory usage (used, total, percentage)
-- CPU usage and core count
-- Environment (development/production)
+**Validation Rules**:
+- sport_id: required, numeric, must exist
+- skill_level: optional; one of ["beginner","intermediate","advanced","pro"]
+
+#### Response
+
+**Success (201 Created)**:
+```json
+{
+  "status": true,
+  "statusCode": 201,
+  "message": "User sport added",
+  "data": { "user_id": 1, "sport_id": 2, "skill_level": "beginner" },
+  "timestamp": "2025-01-04T10:30:00.000Z"
+}
+```
+
+#### Error Responses
+
+- 400 Validation Failed:
+```json
+{ "status": false, "statusCode": 400, "message": "Validation failed", "timestamp": "2025-01-04T10:30:00.000Z" }
+```
+- 401 Unauthorized:
+```json
+{ "status": false, "statusCode": 401, "message": "Invalid or expired token", "timestamp": "2025-01-04T10:30:00.000Z" }
+```
+- 404 Not Found (sport missing):
+```json
+{ "status": false, "statusCode": 404, "message": "Sport not found", "timestamp": "2025-01-04T10:30:00.000Z" }
+```
+- 409 Conflict (duplicate mapping):
+```json
+{ "status": false, "statusCode": 409, "message": "Sport already added for this user", "timestamp": "2025-01-04T10:30:00.000Z" }
+```
+
+#### cURL Example
+
+```bash
+curl -X POST http://localhost:4000/api/v1/users/userSport \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <your_jwt_token>" \
+  -d '{ "sport_id": 2, "skill_level": "beginner" }'
+```
+
+#### Special Notes
+
+- Uniqueness enforced on (user_id, sport_id).
+- Skill level may be normalized to lowercase.
+
+---
+
+### 15. Delete User Sport
+
+**DELETE** `/api/v1/users/deleteUserSport/:user_id/:sport_id`
+
+Remove a sport from a user.
+
+#### Request
+
+**Headers**:
+```
+Authorization: Bearer <your_jwt_token>
+```
+
+**URL Params**:
+- user_id: number
+- sport_id: number
+
+**Validation Rules**:
+- Call must be by the same user (user_id == JWT.sub) or admin.
+
+#### Response
+
+**Success (200 OK)**:
+```json
+{
+  "status": true,
+  "statusCode": 200,
+  "message": "User sport removed",
+  "data": { "user_id": 1, "sport_id": 2 },
+  "timestamp": "2025-01-04T10:30:00.000Z"
+}
+```
+
+#### Error Responses
+
+- 401 Unauthorized / 403 Forbidden:
+```json
+{ "status": false, "statusCode": 403, "message": "Not allowed to modify this resource", "timestamp": "2025-01-04T10:30:00.000Z" }
+```
+- 404 Not Found:
+```json
+{ "status": false, "statusCode": 404, "message": "User sport not found", "timestamp": "2025-01-04T10:30:00.000Z" }
+```
+
+#### cURL Example
+
+```bash
+curl -X DELETE http://localhost:4000/api/v1/users/deleteUserSport/1/2 \
+  -H "Authorization: Bearer <your_jwt_token>"
+```
+
+#### Special Notes
+
+- Deletion is idempotent; deleting a non-existent mapping returns 404.
+- Audit logs recommended for user activity.
 
 ---
 
@@ -1121,33 +862,6 @@ NOLOWERCASE123!   → No lowercase letter
 NoNumbers!        → No digit
 NoSpecial123      → No special character
 weak              → Multiple requirements missing
-```
-
-### Password Strength Indicator (JavaScript)
-
-```javascript
-const getPasswordStrength = (password) => {
-  let strength = 0;
-  
-  // Basic requirements
-  if (password.length >= 8) strength++;
-  if (password.length >= 12) strength++;
-  if (/[a-z]/.test(password)) strength++;
-  if (/[A-Z]/.test(password)) strength++;
-  if (/[0-9]/.test(password)) strength++;
-  if (/[^a-zA-Z0-9]/.test(password)) strength++;
-  if (password.length >= 16) strength++;
-  
-  // Return strength level
-  if (strength <= 2) return { level: 'Weak', color: 'red', score: strength };
-  if (strength <= 4) return { level: 'Medium', color: 'orange', score: strength };
-  if (strength <= 5) return { level: 'Strong', color: 'green', score: strength };
-  return { level: 'Very Strong', color: 'darkgreen', score: strength };
-};
-
-// Usage
-const result = getPasswordStrength('MyPass123!');
-console.log(result); // { level: 'Strong', color: 'green', score: 6 }
 ```
 
 ---
