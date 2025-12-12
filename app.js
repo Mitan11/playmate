@@ -52,7 +52,7 @@ class App {
         // DB connection and server listener
         db.getConnection().then(() => {
             console.log('Database connection successful on startup');
-            this.app.listen(this.PORT,"0.0.0.0", async () => {
+            this.app.listen(this.PORT, async () => {
                 console.log(`Server is running on port http://localhost:${this.PORT}`);
             })
         }).catch((error) => {
