@@ -8,6 +8,8 @@ import authRouter from "./routes/authRouter.js";
 import connectCloudinary from "./utils/Cloudinary.js";
 import sportRouter from "./routes/sportRouter.js";
 import userSportRouter from "./routes/userRouter.js";
+import swaggerUi from 'swagger-ui-express';
+import swaggerDocument from './swagger-output.json' with  { type: 'json' };
 
 class App {
     constructor() {
@@ -42,7 +44,8 @@ class App {
         this.app.use('/api/v1/auth', authRouter);
         this.app.use('/api/v1/sports', sportRouter);
         this.app.use('/api/v1/user', userSportRouter);
-
+        
+        this.app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
     }
 
     listen() {
