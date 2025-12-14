@@ -41,7 +41,7 @@ class AuthHelpers {
     verifyToken(token) {
         try {
             // verify JWT token
-            const decoded = JWT.verify(token , process.env.JWT_SECRET);
+            const decoded = JWT.verify(token, process.env.JWT_SECRET);
             return decoded;
         } catch (error) {
             console.error('Error verifying token:', error);
@@ -66,9 +66,9 @@ class AuthHelpers {
     generateOtp() {
         try {
             // generate 4 digit otp
-            const otp = Math.floor(1000 + Math.random() * 9000).toString(); 
+            const otp = Math.floor(1000 + Math.random() * 9000).toString();
 
-        return otp;
+            return otp;
         } catch (error) {
             console.error('Error generating OTP token:', error);
             throw new Error("Error generating OTP token");
