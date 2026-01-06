@@ -1,37 +1,36 @@
-import VenueOwner from "../models/VenueOwner.js";
-import AuthHelpers from "../utils/AuthHelpers.js";
+import Venue from "../models/Venue.js";
 import Response from "../utils/Response.js";
-import { v2 as cloudinary } from 'cloudinary'
 import db from "../config/db.js";
+import AuthHelpers from "../utils/AuthHelpers.js";
 import { playmateWelcomeTemplate } from "../utils/emailTemplates.js";
 import { sendWelcomeEmail } from "../utils/Mail.js";
-import bcrypt from "bcryptjs";
-import Venue from "../models/Venue.js";
 
-VenueOwner.createTable().catch(console.error);
 Venue.createTable().catch(console.error);
 
-const register = async (req, res) => {
+const registerVenue = async (req, res) => {
+    // Start transaction
     const connection = await db.getConnection();
+
     try {
         await connection.beginTransaction();
-        const { email, password, first_name, last_name, phone } = req.body;
+        const { email, first_name, last_name, phone, password } = req.body;
+        // Default profile image URL
         const defaultProfileImage = "https://res.cloudinary.com/dsw5tkkyr/image/upload/v1764845539/avatar_wcaknk.png";
         let imageUrl = defaultProfileImage;
 
-        if (!email || !password || !first_name || !phone) {
-            await connection.rollback();
+        // check if user already exists
+        const existingUser = await Venue.findByEmail(email, db);
 
-            return res.status(400).json(Response.error(400, 'Missing required fields'));
+        if (existingUser) {
+            await connection.rollback();
+            return res.status(409).json(
+                Response.error(409, "Venue with this email already exists", [
+                    { field: 'venue_email', message: 'Email is already registered' }
+                ])
+            );
         }
 
-        const existing = await VenueOwner.findByEmail(email);
-        if (existing) {
-            await connection.rollback();
-
-            return res.status(409).json(Response.error(409, 'Email already in use'));
-        }
-
+        const hashedPassword = await AuthHelpers.hashPassword(password);
 
         if (req.file) {
             try {
@@ -44,87 +43,92 @@ const register = async (req, res) => {
             }
         }
 
-        const hashed = await AuthHelpers.hashPassword(password);
-        const owner = await VenueOwner.save({ email, password: hashed, first_name, last_name, phone, profile_image: imageUrl }, connection);
-        const safe = { ...owner, password: undefined };
-        //  generate auth token
-        const token = await AuthHelpers.generateToken({ id: owner.id, email: owner.email });
+        // Create new user in the database
+        const userData = {
+            email,
+            password: hashedPassword,
+            first_name,
+            last_name,
+            profile_image: imageUrl,
+            phone,
+            venue_name: '',
+            address: ''
+        };
 
+        const newUser = await Venue.save(userData, connection);
+
+        //  generate auth token
+        const token = await AuthHelpers.generateToken(newUser);
 
         // Send welcome email
         console.log("Sending welcome email to:", email);
         const html = playmateWelcomeTemplate({ name: first_name });
         const emailResult = await sendWelcomeEmail(email, "Welcome to Playmate!", html);
+        console.log("Welcome email result:", emailResult);
 
+        // COMMIT transaction
         await connection.commit();
 
-        return res.status(201).json(Response.success(201, 'Owner created', safe, token));
-    } catch (e) {
+        res.status(201).json(
+            Response.success(201, "Venue registered successfully", {
+                venue: newUser,
+                token
+            })
+        );
+    } catch (error) {
         await connection.rollback();
-        return res.status(500).json(Response.error(500, 'Failed to register owner', e.message));
+        console.error("Error registering venue:", error);
+        res.status(500).json(Response.error(500, "Internal server error"));
     } finally {
         connection.release();
     }
 }
 
-const login = async (req, res) => {
+
+const venueLogin = async (req, res) => {
     const connection = await db.getConnection();
-
     try {
+        connection.beginTransaction();
         const { email, password } = req.body;
-        console.log("Login attempt for email:", email);
+        // check if venue exists
+        const venue = await Venue.findByEmail(email, connection);
 
-        if (!email || !password) {
-            return res.status(400).json(Response.error(400, 'Missing email or password'));
+        if (!venue) {
+            await connection.rollback();
+            return res.status(404).json(
+                Response.error(404, "Venue not found")
+            );
         }
 
-        const owner = await VenueOwner.findByEmail(email);
+        const isPasswordValid = await AuthHelpers.isPasswordValid(venue.password, password);
 
-        if (!owner) return res.status(404).json(Response.error(404, 'Owner not found'));
+        if (!isPasswordValid) {
+            await connection.rollback();
+            return res.status(401).json(
+                Response.error(401, "Email or password is incorrect")
+            );
+        }
 
-        const match = await AuthHelpers.isPasswordValid(owner.password, password);
+        delete venue.password;
 
-        if (!match) return res.status(401).json(Response.error(401, 'Invalid credentials'));
-
-        const safe = { ...owner, password: undefined };
-        //  generate auth token
-        const token = await AuthHelpers.generateToken({ user_id: owner.venue_owners_id, email: owner.email });
+        // generate auth token
+        const token = await AuthHelpers.generateToken(venue);
 
         await connection.commit();
 
-        return res.status(200).json(Response.success(200, 'Login successful', safe, token));
-    } catch (e) {
-        await connection.rollback();
-        console.error('Login error:', e);
-        return res.status(500).json(Response.error(500, 'Login failed', e.message));
+        res.status(200).json(
+            Response.success(200, "Venue logged in successfully", {
+                venue,
+                token
+            })
+        );
+
+    } catch (error) {
+        console.error("Error during venue login:", error);
+        res.status(500).json(Response.error(500, "Internal server error"));
     } finally {
-        await connection.release();
+        connection.release();
     }
 }
 
-const profile = async (req, res) => {
-    const connection = await db.getConnection();
-    try {
-        const id = req.user.venue_owners_id;
-
-        const owner = await VenueOwner.findById(id);
-
-        if (!owner) return res.status(404).json(Response.error(404, 'Owner not found'));
-
-        const safe = { ...owner, password: undefined };
-
-        await connection.commit();
-        return res.status(200).json(Response.success(200, 'Owner profile', safe));
-    } catch (e) {
-        return res.status(500).json(Response.error(500, 'Failed to fetch owner', e.message));
-    } finally {
-        await connection.release();
-    }
-}
-
-
-export {
-    register,
-    login,
-    profile,
-};
+export { registerVenue, venueLogin };
