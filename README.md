@@ -7,19 +7,26 @@
 ![JWT](https://img.shields.io/badge/JWT-Auth-000000?logo=jsonwebtokens&logoColor=white)
 ![Cloudinary](https://img.shields.io/badge/Cloudinary-Image%20CDN-3448C5?logo=cloudinary&logoColor=white)
 ![Nodemailer](https://img.shields.io/badge/Nodemailer-Email-22D3EE?logo=nodemailer&logoColor=white)
+![Swagger](https://img.shields.io/badge/Swagger-API%20Docs-85EA2D?logo=swagger&logoColor=black)
 
-A comprehensive sports social platform API built with Node.js, Express.js, and MySQL. Playmate enables users to connect through sports, manage their athletic profiles, and engage with a community of sports enthusiasts. The platform features secure authentication, image uploads, email notifications, and a robust foundation for sport management and skill tracking.
+A comprehensive sports social platform API built with Node.js, Express.js, and MySQL. Playmate enables users to connect through sports, manage their athletic profiles, book venues, and engage with a community of sports enthusiasts. The platform features secure authentication, venue management, image uploads, email notifications, and a robust foundation for sport management and skill tracking.
 
 ## 📋 Table of Contents
 
 - [Overview](#overview)
 - [Features](#features)
 - [Technology Stack](#technology-stack)
+- [Project Architecture](#project-architecture)
+- [Codebase Structure](#codebase-structure)
+  - [Routes](#routes)
+  - [Controllers](#controllers)
+  - [Models](#models)
+  - [Middleware](#middleware)
+  - [Utilities](#utilities)
 - [Quick Start](#quick-start)
 - [Installation Guide](#installation-guide)
 - [API Documentation](#api-documentation)
 - [Database Schema](#database-schema)
-- [Architecture](#architecture)
 - [Security](#security)
 - [Testing](#testing)
 - [Deployment](#deployment)
@@ -42,28 +49,79 @@ The API follows RESTful principles, implements JWT-based authentication, and use
 ## ✨ Features
 
 ### Current Features
-- 🔐 **JWT Authentication**: Secure token-based authentication with configurable expiration
-- 👤 **User Management**: Complete registration, login, and profile management
-- 📷 **Image Upload**: Cloudinary integration for optimized profile images with automatic resizing
+- 🔐 **JWT Authentication**: Secure token-based authentication with configurable expiration (7 days default)
+- 👤 **User Management**: 
+  - Complete registration with email validation
+  - Login with bcrypt password hashing
+  - Profile management with image uploads
+  - Password reset via OTP email
+  - Password change for logged-in users
+- 🏢 **Venue Management**:
+  - Venue registration and authentication
+  - Venue owner profiles
+  - Venue-sport associations with pricing
+  - Court/facility management
+- 📷 **Image Upload**: 
+  - Cloudinary integration for optimized profile images
+  - Automatic image resizing and optimization
+  - Default fallback images
+  - 5MB file size limit (configurable)
 - 📧 **Email Notifications**: 
-  - Welcome emails for new users
-  - Password reset with OTP verification
+  - Welcome emails for new users and venues
+  - Password reset with 4-digit OTP verification
   - Professional HTML email templates
-- ✅ **Input Validation**: Comprehensive validation using express-validator
-- 🗄️ **Database**: MySQL with connection pooling for optimal performance
-- 📊 **Health Monitoring**: Real-time health check endpoint with system metrics
+  - Gmail SMTP integration
+- ✅ **Input Validation**: 
+  - Comprehensive validation using express-validator
+  - Email format validation
+  - Password strength requirements
+  - Name format validation
+- 🗄️ **Database**: 
+  - MySQL 8.0+ with connection pooling (10 connections)
+  - Automatic table creation on startup
+  - Transaction support for data integrity
+  - Indexed queries for optimal performance
+- 📊 **Health Monitoring**: 
+  - Real-time health check endpoints
+  - Database connectivity status
+  - System metrics (memory, CPU, uptime)
+  - Response time tracking
 - 📱 **Standardized Responses**: Consistent API response format across all endpoints
-- 🔒 **Password Security**: Bcrypt hashing with salt rounds
-- 🚀 **Performance**: Indexed database queries for fast lookups
+- 🔒 **Password Security**: 
+  - Bcrypt hashing with 10 salt rounds
+  - Password strength validation
+  - OTP-based password reset
+- 🚀 **Performance**: 
+  - Database connection pooling
+  - Indexed database queries for fast lookups
+  - Optimized image delivery via CDN
+- 🏅 **Sport Management**: 
+  - Complete CRUD operations for sports
+  - User-sport associations with skill levels
+  - Venue-sport associations with pricing
+  - Sport statistics and analytics
+- 📖 **API Documentation**: 
+  - Swagger UI integration at `/api-docs`
+  - Auto-generated API documentation
+  - Interactive API testing
 
 ### Upcoming Features
-- 🏅 **Sport Management**: Add, update, and manage sports
-- 📈 **Skill Tracking**: Track and update skill levels
-- 👥 **User Matching**: Find players based on sports and skill levels
+- 👥 **User Matching**: Find players based on sports, location, and skill levels
 - 🗓️ **Event Management**: Create and join sports events
 - 💬 **Messaging**: Real-time chat between users
-- 📍 **Location Services**: Find nearby players and venues
-- 🏆 **Achievements**: Gamification with badges and milestones
+- 📍 **Location Services**: 
+  - Find nearby players and venues
+  - Geospatial search
+  - Distance-based filtering
+- 🏆 **Achievements**: 
+  - Gamification with badges and milestones
+  - User rankings and leaderboards
+- 📅 **Booking System**:
+  - Venue court booking
+  - Time slot management
+  - Payment integration
+- 📸 **Media Gallery**: Photo and video uploads for events
+- ⭐ **Ratings & Reviews**: User and venue rating system
 
 ## 🛠️ Technology Stack
 
@@ -85,6 +143,549 @@ The API follows RESTful principles, implements JWT-based authentication, and use
 ### Utilities
 - **Date/Time**: day.js
 - **Crypto**: Built-in crypto module for OTP generation
+
+## 🏗️ Project Architecture
+
+Playmate follows a **Model-View-Controller (MVC)** architecture pattern with a clear separation of concerns:
+
+```
+playmate/
+├── app.js                 # Application entry point
+├── config/               # Configuration files
+│   └── db.js            # MySQL database connection pool
+├── routes/              # API route definitions
+│   ├── authRouter.js    # Authentication routes
+│   ├── sportRouter.js   # Sports management routes
+│   ├── userRouter.js    # User profile routes
+│   └── venueRouter.js   # Venue management routes
+├── controllers/         # Business logic handlers
+│   ├── authController.js    # Authentication logic
+│   ├── sportController.js   # Sports management logic
+│   ├── userController.js    # User management logic
+│   └── venueController.js   # Venue management logic
+├── models/              # Database models (ORM layer)
+│   ├── User.js          # User data model
+│   ├── Sport.js         # Sport data model
+│   ├── UserSport.js     # User-Sport relationship model
+│   ├── Venue.js         # Venue data model
+│   ├── VenueSport.js    # Venue-Sport relationship model
+│   └── VenueSportCourt.js # Court management model
+├── middleware/          # Express middleware
+│   ├── authUser.js      # JWT authentication middleware
+│   ├── validation.js    # Input validation rules
+│   └── multer.js        # File upload configuration
+└── utils/               # Helper utilities
+    ├── AuthHelpers.js   # JWT and password hashing helpers
+    ├── Cloudinary.js    # Image upload service
+    ├── Mail.js          # Email service
+    ├── Response.js      # Standardized API responses
+    └── emailTemplates.js # HTML email templates
+```
+
+### Architecture Highlights
+
+- **Layered Architecture**: Clear separation between routes, controllers, models, and utilities
+- **Database Connection Pooling**: MySQL2 connection pool for optimal database performance
+- **Transaction Management**: Database transactions for data consistency
+- **Middleware Pipeline**: Authentication, validation, and file upload handling
+- **Standardized Responses**: Consistent API response format across all endpoints
+- **Error Handling**: Centralized error handling with proper status codes
+- **Auto-Initialization**: Database tables created automatically on startup
+
+## 📁 Codebase Structure
+
+### Routes
+
+The application exposes four main route groups:
+
+#### 1. **Authentication Routes** (`/api/v1/auth`)
+**File**: `routes/authRouter.js`
+
+| Endpoint | Method | Description | Validation | Auth Required |
+|----------|--------|-------------|------------|---------------|
+| `/register` | POST | User registration with profile image | `validateUserRegistration` | ❌ |
+| `/login` | POST | User login | `validateUserLogin` | ❌ |
+| `/health` | GET | Health check endpoint | - | ❌ |
+| `/check-email` | POST | Check email availability | - | ❌ |
+| `/reset-password-email` | POST | Send password reset OTP | `validateResetPasswordEmail` | ❌ |
+| `/reset-password` | POST | Reset password with OTP | `validateResetPassword` | ❌ |
+| `/change-password` | POST | Change user password | `validateChangePassword` | ✅ |
+
+**Features**:
+- JWT token generation and verification
+- Password hashing with bcrypt
+- Email verification for password reset
+- Profile image upload support (via Multer)
+- Welcome email on registration
+- Comprehensive validation
+
+---
+
+#### 2. **Sports Routes** (`/api/v1/sports`)
+**File**: `routes/sportRouter.js`
+
+| Endpoint | Method | Description | Auth Required |
+|----------|--------|-------------|---------------|
+| `/health` | GET | Sports service health check | ❌ |
+| `/addNewSport` | POST | Create new sport | ✅ |
+| `/getAllSports` | GET | Retrieve all sports | ❌ |
+| `/updateSport/:sportId` | PUT | Update sport details | ✅ |
+| `/deleteSport/:sportId` | DELETE | Delete a sport | ✅ |
+
+**Features**:
+- CRUD operations for sports management
+- Duplicate sport name prevention
+- Automatic table creation
+- Health monitoring with system metrics
+
+---
+
+#### 3. **User Routes** (`/api/v1/user`)
+**File**: `routes/userRouter.js`
+
+| Endpoint | Method | Description | Auth Required |
+|----------|--------|-------------|---------------|
+| `/updateDetails` | PUT | Update user profile with image | ✅ |
+| `/userSport` | POST | Add sport to user profile | ✅ |
+| `/deleteUserSport/:user_id/:sport_id` | DELETE | Remove sport from user | ✅ |
+| `/profile/:userId` | GET | Get user profile with sports | ✅ |
+
+**Features**:
+- Profile management with Cloudinary image upload
+- User-sport relationship management
+- Skill level tracking (Beginner, Intermediate, Pro)
+- Complete user profile retrieval
+
+---
+
+#### 4. **Venue Routes** (`/api/v1/venue`)
+**File**: `routes/venueRouter.js`
+
+| Endpoint | Method | Description | Auth Required |
+|----------|--------|-------------|---------------|
+| `/register` | POST | Register new venue | ❌ |
+| `/login` | POST | Venue owner login | ❌ |
+
+**Features**:
+- Venue registration with owner details
+- JWT authentication for venue owners
+- Email verification
+- Profile image support
+
+---
+
+### Controllers
+
+Controllers contain the business logic for handling API requests.
+
+#### 1. **authController.js**
+**Purpose**: Handles all authentication and user account management
+
+**Functions**:
+- `register(req, res)` - User registration with email verification
+  - Validates user data
+  - Hashes password with bcrypt
+  - Uploads profile image to Cloudinary
+  - Sends welcome email
+  - Generates JWT token
+  
+- `login(req, res)` - User authentication
+  - Validates credentials
+  - Compares hashed passwords
+  - Returns JWT token
+  
+- `healthCheck(req, res)` - API health monitoring
+  - Database connectivity check
+  - Memory usage statistics
+  - CPU load metrics
+  - Uptime tracking
+  
+- `checkEmailExists(req, res)` - Email availability check
+  
+- `sendResetPasswordEmail(req, res)` - Password reset flow
+  - Generates 4-digit OTP
+  - Sends reset email with template
+  
+- `resetPassword(req, res)` - Password reset with OTP
+  - Verifies OTP
+  - Updates password
+  
+- `changePassword(req, res)` - Authenticated password change
+  - Validates current password
+  - Updates to new password
+
+---
+
+#### 2. **sportController.js**
+**Purpose**: Manages sports catalog
+
+**Functions**:
+- `healthCheck(req, res)` - Sports service health check
+- `addNewSport(req, res)` - Create new sport
+  - Validates sport name (2-100 chars)
+  - Checks for duplicates
+  - Inserts into database
+  
+- `getAllSports(req, res)` - List all sports
+  - Returns sorted list
+  - Includes metadata (count, timestamps)
+  
+- `updateSport(req, res)` - Update sport by ID
+  - Validates sport ID
+  - Updates sport name
+  
+- `deleteSport(req, res)` - Delete sport
+  - Checks for foreign key constraints
+  - Removes from database
+
+---
+
+#### 3. **userController.js**
+**Purpose**: User profile and sport preferences management
+
+**Functions**:
+- `updateUserDetails(req, res)` - Update user profile
+  - Handles profile image upload
+  - Updates first/last name
+  - Uses transactions for data integrity
+  
+- `addUserSport(req, res)` - Add sport to user profile
+  - Validates user and sport IDs
+  - Prevents duplicate entries
+  - Stores skill level
+  
+- `userProfile(req, res)` - Get user profile
+  - Retrieves user details
+  - Includes associated sports
+  - Returns skill levels
+  
+- `deleteUserSport(req, res)` - Remove sport from user
+  - Validates ownership
+  - Removes relationship
+
+---
+
+#### 4. **venueController.js**
+**Purpose**: Venue registration and authentication
+
+**Functions**:
+- `registerVenue(req, res)` - Venue registration
+  - Creates venue owner account
+  - Stores venue details (name, address)
+  - Sends welcome email
+  - Returns JWT token
+  
+- `venueLogin(req, res)` - Venue authentication
+  - Validates credentials
+  - Returns venue details and token
+
+---
+
+### Models
+
+Models represent database entities and provide an abstraction layer for database operations.
+
+#### 1. **User.js**
+**Purpose**: User account management
+
+**Schema**:
+```sql
+CREATE TABLE users (
+    user_id INT AUTO_INCREMENT PRIMARY KEY,
+    user_email VARCHAR(100) NOT NULL UNIQUE,
+    user_password VARCHAR(61) NOT NULL,
+    first_name VARCHAR(50) NOT NULL,
+    last_name VARCHAR(50) NULL,
+    profile_image VARCHAR(165) NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_user_email (user_email)
+)
+```
+
+**Methods**:
+- `createTable()` - Create users table
+- `findByEmail(email, conn)` - Find user by email
+- `save(userData, conn)` - Create new user
+- `findById(userId, conn)` - Find user by ID
+- `updatePassword(email, hashedPassword, conn)` - Update password
+- `updateUserDetails(userDetails, conn)` - Update profile
+
+---
+
+#### 2. **Sport.js**
+**Purpose**: Sports catalog management
+
+**Schema**:
+```sql
+CREATE TABLE sports (
+    sport_id INT AUTO_INCREMENT PRIMARY KEY,
+    sport_name VARCHAR(100) NOT NULL UNIQUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_sport_name (sport_name)
+)
+```
+
+**Methods**:
+- `createTable()` - Create sports table
+- `insertDefaultSports(conn)` - Insert default sports (Cricket, Pickleball)
+- `getAllSports(conn)` - Get all sports
+- `addSport(sportName, conn)` - Add new sport
+- `findById(sportId, conn)` - Find sport by ID
+- `findByName(sportName, conn)` - Find sport by name
+- `updateSport(sportId, sportName, conn)` - Update sport
+- `deleteSport(sportId, conn)` - Delete sport
+- `getSportsCount(conn)` - Get total count
+
+---
+
+#### 3. **UserSport.js**
+**Purpose**: User-Sport relationship (Many-to-Many)
+
+**Schema**:
+```sql
+CREATE TABLE user_sports (
+    user_sport_id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    sport_id INT NOT NULL,
+    skill_level ENUM('Beginner', 'Intermediate', 'Pro') NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+    FOREIGN KEY (sport_id) REFERENCES sports(sport_id) ON DELETE CASCADE,
+    UNIQUE KEY unique_user_sport (user_id, sport_id),
+    INDEX idx_user_id (user_id),
+    INDEX idx_sport_id (sport_id)
+)
+```
+
+**Methods**:
+- `createTable()` - Create user_sports table
+- `addUserSport(userSportData, conn)` - Add sport to user
+- `getUserSports(userId, conn)` - Get user's sports with details
+- `getUsersBySport(sportId, skillLevel, conn)` - Find users by sport
+- `updateSkillLevel(userSportId, skillLevel, conn)` - Update skill level
+- `removeUserSport(userId, sportId, conn)` - Remove user sport
+- `findByUserAndSport(userId, sportId, conn)` - Find relationship
+- `getSportStats(sportId, conn)` - Get statistics by skill level
+
+---
+
+#### 4. **Venue.js**
+**Purpose**: Venue management
+
+**Schema**:
+```sql
+CREATE TABLE venues (
+    venue_id INT AUTO_INCREMENT PRIMARY KEY,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    password VARCHAR(61) NOT NULL,
+    first_name VARCHAR(50) NOT NULL,
+    last_name VARCHAR(50) NULL,
+    phone VARCHAR(20) NOT NULL,
+    profile_image VARCHAR(160) DEFAULT 'https://...',
+    venue_name VARCHAR(100) NOT NULL,
+    address VARCHAR(150) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_venue_email (email),
+    INDEX idx_venue_name (venue_name)
+)
+```
+
+**Methods**:
+- `createTable()` - Create venues table
+- `save(data, conn)` - Create new venue
+- `findById(id, conn)` - Find venue by ID
+- `findByEmail(email, conn)` - Find venue by email
+- `updateProfile(id, updates, conn)` - Update venue profile
+
+---
+
+#### 5. **VenueSport.js**
+**Purpose**: Venue-Sport relationship with pricing
+
+**Schema**:
+```sql
+CREATE TABLE venue_sports (
+    venue_sport_id INT AUTO_INCREMENT PRIMARY KEY,
+    venue_id INT NOT NULL,
+    sport_id INT NOT NULL,
+    price_per_hour DECIMAL(10,2) NOT NULL CHECK (price_per_hour >= 0),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (venue_id) REFERENCES venues(venue_id) ON DELETE CASCADE,
+    FOREIGN KEY (sport_id) REFERENCES sports(sport_id) ON DELETE CASCADE,
+    UNIQUE KEY unique_venue_sport (venue_id, sport_id),
+    INDEX idx_venue_id (venue_id),
+    INDEX idx_sport_id (sport_id)
+)
+```
+
+**Methods**:
+- `createTable()` - Create venue_sports table
+- `save(data, conn)` - Add sport to venue
+- `findById(id, conn)` - Find by ID
+- `listByVenue(venueId, conn)` - Get all sports for a venue
+
+---
+
+#### 6. **VenueSportCourt.js**
+**Purpose**: Court/facility management for venue sports
+
+**Note**: Implementation details in the model file.
+
+---
+
+### Middleware
+
+#### 1. **authUser.js**
+**Purpose**: JWT token verification
+
+**Functions**:
+- `verifyToken(req, res, next)` - User authentication middleware
+  - Extracts JWT from `Authorization: Bearer <token>` header
+  - Verifies token validity
+  - Loads user data
+  - Attaches `req.user` object
+  
+- `venueVerifyToken(req, res, next)` - Venue authentication middleware
+  - Similar to `verifyToken` but for venue owners
+  - Loads venue data
+  - Attaches `req.user` object
+
+**Error Handling**:
+- 401: Missing or malformed token
+- 401: Invalid or expired token
+- 404: User/Venue not found
+- 500: Token verification failed
+
+---
+
+#### 2. **validation.js**
+**Purpose**: Input validation with express-validator
+
+**Validation Rules**:
+- `validateUserRegistration` - User signup
+  - email: valid email format, max 100 chars
+  - password: 8-60 chars, contains lowercase, uppercase, number, special char
+  - first_name: 1-50 chars, letters/spaces/hyphens/apostrophes
+  - last_name: optional, same as first_name
+  
+- `validateUserLogin` - User signin
+  - email: valid format
+  - password: 1-60 chars
+  
+- `validateResetPasswordEmail` - Password reset request
+  - email: valid format
+  
+- `validateResetPassword` - Password reset with OTP
+  - email: valid format
+  - new_password: same as registration
+  
+- `validateChangePassword` - Password change
+  - currentPassword: required
+  - newPassword: same as registration
+
+**Error Handler**:
+- `handleValidationErrors(req, res, next)` - Returns 400 with error details
+
+---
+
+#### 3. **multer.js**
+**Purpose**: File upload configuration
+
+**Configuration**:
+- Storage: Memory storage (for Cloudinary upload)
+- File size limit: 5MB (configurable via `.env`)
+- Allowed types: `image/jpeg`, `image/png`, `image/jpg`
+
+---
+
+### Utilities
+
+#### 1. **AuthHelpers.js**
+**Purpose**: Authentication utility functions
+
+**Functions**:
+- `hashPassword(password)` - Hash password with bcrypt (10 salt rounds)
+- `isPasswordValid(storedHash, plainPassword)` - Compare passwords
+- `generateToken(user)` - Create JWT token
+  - Payload: `{ id: user.id, email: user.email }`
+  - Expiry: 7 days (configurable)
+- `verifyToken(token)` - Verify and decode JWT
+- `generateOTP()` - Generate 4-digit numeric OTP
+- `hashOTP(otp)` - Hash OTP for storage
+
+---
+
+#### 2. **Cloudinary.js**
+**Purpose**: Image upload service configuration
+
+**Function**:
+- `connectCloudinary()` - Initialize Cloudinary with credentials
+  - Cloud Name
+  - API Key
+  - API Secret
+
+---
+
+#### 3. **Mail.js**
+**Purpose**: Email service using Nodemailer
+
+**Functions**:
+- `sendEmail(to, subject, html)` - Generic email sender
+  - Uses Gmail SMTP
+  - Configured via `.env`
+  
+- `sendWelcomeEmail(to, subject, html)` - Welcome email wrapper
+
+**Configuration**:
+- Service: Gmail
+- Auth: Email + App-specific password
+- From: Configurable sender name
+
+---
+
+#### 4. **Response.js**
+**Purpose**: Standardized API response format
+
+**Functions**:
+- `success(statusCode, message, data)` - Success response
+  ```json
+  {
+    "status": true,
+    "statusCode": 200,
+    "message": "Success message",
+    "data": {...},
+    "timestamp": "2025-01-06T12:00:00.000Z"
+  }
+  ```
+  
+- `error(statusCode, message, errors)` - Error response
+  ```json
+  {
+    "status": false,
+    "statusCode": 400,
+    "message": "Error message",
+    "errors": [...],
+    "timestamp": "2025-01-06T12:00:00.000Z"
+  }
+  ```
+
+---
+
+#### 5. **emailTemplates.js**
+**Purpose**: HTML email templates
+
+**Templates**:
+- `playmateWelcomeTemplate({ name })` - Welcome email
+  - Branded design
+  - Personalized greeting
+  - Platform introduction
+  
+- `resetPasswordTemplate({ name, otp })` - Password reset email
+  - OTP display
+  - Security instructions
+  - Expiration notice
+
+---
 
 ## 🚀 Quick Start
 
@@ -240,28 +841,114 @@ curl http://localhost:4000/api/v1/auth/health
 
 ## 📖 API Documentation
 
-For detailed API documentation, see [docs/API.md](docs/API.md)
+For detailed API documentation, see [docs/API.md](docs/API.md) or visit `/api-docs` when running the server for interactive Swagger documentation.
 
-### Quick Reference
+**Swagger UI**: `http://localhost:4000/api-docs`
 
-| Endpoint | Method | Description | Auth |
-|----------|--------|-------------|------|
-| `/register` | POST | Register new user | ❌ |
-| `/login` | POST | Login and receive JWT | ❌ |
-| `/check-email` | POST | Check email availability | ❌ |
-| `/reset-password-email` | POST | Send password reset OTP | ❌ |
-| `/reset-password` | POST | Reset password with OTP | ❌ |
-| `/change-password` | POST | Change password | ✅ |
-| `/health` | GET | Health check | ❌ |
-| `/sports/health` | GET | Sports service health | ❌ |
-| `/sports/addNewSport` | POST | Create sport | ✅ (admin) |
-| `/sports/getAllSports` | GET | List sports | ❌ |
-| `/sports/updateSport/:sportId` | PUT | Update sport | ✅ (admin) |
-| `/sports/deleteSport/:sportId` | DELETE | Delete sport | ✅ (admin) |
-| `/users/updateDetails` | PUT | Update user details (with image) | ✅ |
-| `/users/userSport` | POST | Add sport to user | ✅ |
-| `/users/deleteUserSport/:user_id/:sport_id` | DELETE | Remove sport from user | ✅ |
-| `/users/profile/:userId` | GET | Get user profile | ✅ |
+### API Endpoint Summary
+
+The API is organized into four main modules:
+
+#### Authentication & User Management
+Base Path: `/api/v1/auth`
+
+| Endpoint | Method | Description | Auth | Body/Params |
+|----------|--------|-------------|------|-------------|
+| `/register` | POST | Register new user | ❌ | `user_email`, `user_password`, `first_name`, `last_name?`, `profile_image?` (multipart) |
+| `/login` | POST | User login | ❌ | `user_email`, `user_password` |
+| `/check-email` | POST | Check email availability | ❌ | `user_email` |
+| `/reset-password-email` | POST | Send password reset OTP | ❌ | `user_email` |
+| `/reset-password` | POST | Reset password with OTP | ❌ | `user_email`, `new_password`, `otp` |
+| `/change-password` | POST | Change password (authenticated) | ✅ | `currentPassword`, `newPassword` |
+| `/health` | GET | Health check | ❌ | - |
+
+**Authentication Headers**:
+```
+Authorization: Bearer <jwt_token>
+```
+
+---
+
+#### Sports Management
+Base Path: `/api/v1/sports`
+
+| Endpoint | Method | Description | Auth | Body/Params |
+|----------|--------|-------------|------|-------------|
+| `/health` | GET | Sports service health check | ❌ | - |
+| `/addNewSport` | POST | Create new sport | ✅ | `sport_name` |
+| `/getAllSports` | GET | List all sports | ❌ | - |
+| `/updateSport/:sportId` | PUT | Update sport by ID | ✅ | `sport_name` |
+| `/deleteSport/:sportId` | DELETE | Delete sport by ID | ✅ | - |
+
+---
+
+#### User Profile & Sports
+Base Path: `/api/v1/user`
+
+| Endpoint | Method | Description | Auth | Body/Params |
+|----------|--------|-------------|------|-------------|
+| `/updateDetails` | PUT | Update user profile | ✅ | `first_name?`, `last_name?`, `profile_image?` (multipart) |
+| `/userSport` | POST | Add sport to user profile | ✅ | `user_id`, `sport_id`, `skill_level?` |
+| `/deleteUserSport/:user_id/:sport_id` | DELETE | Remove sport from user | ✅ | - |
+| `/profile/:userId` | GET | Get user profile with sports | ✅ | - |
+
+**Skill Levels**: `Beginner`, `Intermediate`, `Pro`
+
+---
+
+#### Venue Management
+Base Path: `/api/v1/venue`
+
+| Endpoint | Method | Description | Auth | Body/Params |
+|----------|--------|-------------|------|-------------|
+| `/register` | POST | Register new venue | ❌ | `email`, `password`, `first_name`, `last_name?`, `phone`, `venue_name`, `address`, `profile_image?` |
+| `/login` | POST | Venue login | ❌ | `email`, `password` |
+
+---
+
+### Response Format
+
+#### Success Response
+```json
+{
+  "status": true,
+  "statusCode": 200,
+  "message": "Success message",
+  "data": {
+    // Response data
+  },
+  "timestamp": "2025-01-06T12:00:00.000Z"
+}
+```
+
+#### Error Response
+```json
+{
+  "status": false,
+  "statusCode": 400,
+  "message": "Error message",
+  "errors": [
+    {
+      "field": "field_name",
+      "message": "Validation error message"
+    }
+  ],
+  "timestamp": "2025-01-06T12:00:00.000Z"
+}
+```
+
+### Common HTTP Status Codes
+
+- **200 OK**: Request successful
+- **201 Created**: Resource created successfully
+- **400 Bad Request**: Validation error or invalid input
+- **401 Unauthorized**: Missing, invalid, or expired token
+- **403 Forbidden**: Insufficient permissions
+- **404 Not Found**: Resource not found
+- **409 Conflict**: Duplicate resource (e.g., email already exists)
+- **500 Internal Server Error**: Server error
+
+---
 
 ### Authentication
 
@@ -270,726 +957,309 @@ All protected routes require JWT token in header:
 Authorization: Bearer <your_jwt_token>
 ```
 
----
+**Token Expiration**: 7 days (configurable via `JWT_EXPIRES_IN` in `.env`)
 
-## 📍 Endpoint Documentation
+**Obtaining Token**:
+1. Register: `POST /api/v1/auth/register`
+2. Login: `POST /api/v1/auth/login`
+3. Venue Login: `POST /api/v1/venue/login`
 
-<!-- Already documented above: Change Password (Section 6) and Health Check (Section 7) -->
-<!-- Reference:
-6. Change Password  → POST /api/v1/auth/change-password
-7. Health Check     → GET  /api/v1/auth/health
--->
-
-### 8. List Sports
-
-**GET** `/api/v1/sports`
-
-Retrieve all available sports.
-
-#### Request
-
-No body or authentication required.
-
-#### Response
-
-**Success (200 OK)**:
+Both return:
 ```json
 {
   "status": true,
   "statusCode": 200,
-  "message": "Sports fetched successfully",
-  "data": [
-    { "sport_id": 1, "sport_name": "Football", "description": "Team field sport", "created_at": "2025-01-04T10:00:00.000Z", "updated_at": "2025-01-04T10:00:00.000Z" },
-    { "sport_id": 2, "sport_name": "Basketball", "description": "Indoor team sport", "created_at": "2025-01-04T10:00:00.000Z", "updated_at": "2025-01-04T10:00:00.000Z" }
-  ],
-  "timestamp": "2025-01-04T10:30:00.000Z"
-}
-```
-
-#### Error Responses
-
-- 500 Internal Server Error:
-```json
-{ "status": false, "statusCode": 500, "message": "Server error while fetching sports", "timestamp": "2025-01-04T10:30:00.000Z" }
-```
-
-#### cURL Example
-
-```bash
-curl -X GET http://localhost:4000/api/v1/sports
-```
-
-#### Special Notes
-
-- Consider pagination for large catalogs via query params (page, limit).
-- Responses are indexed-friendly; ensure DB index on sport_name.
-
----
-
-### 9. Create Sport
-
-**POST** `/api/v1/sports`
-
-Create a new sport entry.
-
-#### Request
-
-**Headers**:
-```
-Authorization: Bearer <admin_jwt_token>
-Content-Type: application/json
-```
-
-**Body**:
-```json
-{
-  "sport_name": "Badminton",
-  "description": "Racquet sport played by two or four players"
-}
-```
-
-**Validation Rules**:
-- sport_name: required, string, 2-100 chars, unique (case-insensitive)
-- description: optional, max 255 chars
-
-**Role Requirements**:
-- Admin only
-
-#### Response
-
-**Success (201 Created)**:
-```json
-{
-  "status": true,
-  "statusCode": 201,
-  "message": "Sport created successfully",
   "data": {
-    "sport_id": 12,
-    "sport_name": "Badminton",
-    "description": "Racquet sport played by two or four players",
-    "created_at": "2025-01-04T10:30:00.000Z"
-  },
-  "timestamp": "2025-01-04T10:30:00.000Z"
+    "user": {...},
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  }
 }
-```
-
-#### Error Responses
-
-- 400 Validation Failed:
-```json
-{
-  "status": false,
-  "statusCode": 400,
-  "message": "Validation failed",
-  "errors": [{ "field": "sport_name", "message": "Sport name is required" }],
-  "timestamp": "2025-01-04T10:30:00.000Z"
-}
-```
-- 401 Unauthorized / 403 Forbidden:
-```json
-{ "status": false, "statusCode": 403, "message": "Admin access required", "timestamp": "2025-01-04T10:30:00.000Z" }
-```
-- 409 Conflict (duplicate):
-```json
-{ "status": false, "statusCode": 409, "message": "Sport with this name already exists", "timestamp": "2025-01-04T10:30:00.000Z" }
-```
-
-#### cURL Example
-
-```bash
-curl -X POST http://localhost:4000/api/v1/sports \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer <admin_jwt_token>" \
-  -d '{
-    "sport_name": "Badminton",
-    "description": "Racquet sport played by two or four players"
-  }'
-```
-
-#### Special Notes
-
-- Unique constraint enforced on sport_name.
-- All writes audited via timestamps.
-
----
-
-### 10. Update Sport
-
-**PUT** `/api/v1/sports/:id`
-
-Update sport details by ID.
-
-#### Request
-
-**Headers**:
-```
-Authorization: Bearer <admin_jwt_token>
-Content-Type: application/json
-```
-
-**URL Params**:
-- id: number (sport ID)
-
-**Body**:
-```json
-{
-  "sport_name": "Badminton",
-  "description": "Updated description"
-}
-```
-
-**Validation Rules**:
-- sport_name: optional, if present 2-100 chars, unique if changed
-- description: optional, max 255 chars
-
-**Role Requirements**:
-- Admin only
-
-#### Response
-
-**Success (200 OK)**:
-```json
-{
-  "status": true,
-  "statusCode": 200,
-  "message": "Sport updated successfully",
-  "data": { "sport_id": 12, "updated_fields": ["description"] },
-  "timestamp": "2025-01-04T10:30:00.000Z"
-}
-```
-
-#### Error Responses
-
-- 400 Validation Failed:
-```json
-{ "status": false, "statusCode": 400, "message": "Validation failed", "timestamp": "2025-01-04T10:30:00.000Z" }
-```
-- 401/403 Unauthorized/Forbidden:
-```json
-{ "status": false, "statusCode": 403, "message": "Admin access required", "timestamp": "2025-01-04T10:30:00.000Z" }
-```
-- 404 Not Found:
-```json
-{ "status": false, "statusCode": 404, "message": "Sport not found", "timestamp": "2025-01-04T10:30:00.000Z" }
-```
-- 409 Conflict (duplicate name):
-```json
-{ "status": false, "statusCode": 409, "message": "Sport name already in use", "timestamp": "2025-01-04T10:30:00.000Z" }
-```
-
-#### cURL Example
-
-```bash
-curl -X PUT http://localhost:4000/api/v1/sports/12 \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer <admin_jwt_token>" \
-  -d '{
-    "description": "Updated description"
-  }'
-```
-
-#### Special Notes
-
-- Partial updates supported; only provided fields are updated.
-- Name change triggers uniqueness check.
-
----
-
-### 11. Delete Sport
-
-**DELETE** `/api/v1/sports/:id`
-
-Delete a sport by ID.
-
-#### Request
-
-**Headers**:
-```
-Authorization: Bearer <admin_jwt_token>
-```
-
-**URL Params**:
-- id: number (sport ID)
-
-#### Response
-
-**Success (200 OK)**:
-```json
-{
-  "status": true,
-  "statusCode": 200,
-  "message": "Sport deleted successfully",
-  "data": { "sport_id": 12, "deleted": true },
-  "timestamp": "2025-01-04T10:30:00.000Z"
-}
-```
-
-#### Error Responses
-
-- 401/403 Unauthorized/Forbidden:
-```json
-{ "status": false, "statusCode": 403, "message": "Admin access required", "timestamp": "2025-01-04T10:30:00.000Z" }
-```
-- 404 Not Found:
-```json
-{ "status": false, "statusCode": 404, "message": "Sport not found", "timestamp": "2025-01-04T10:30:00.000Z" }
-```
-- 409 Conflict (referential integrity):
-```json
-{ "status": false, "statusCode": 409, "message": "Cannot delete sport in use", "timestamp": "2025-01-04T10:30:00.000Z" }
-```
-
-#### cURL Example
-
-```bash
-curl -X DELETE http://localhost:4000/api/v1/sports/12 \
-  -H "Authorization: Bearer <admin_jwt_token>"
-```
-
-#### Special Notes
-
-- Deletions may be blocked if referenced by user_sports (FK constraint).
-- Consider soft-deletion if needed.
-
----
-
-### 12. Get User Profile
-
-**GET** `/api/v1/users/profile/:userId`
-
-Get a user's profile including their sports.
-
-#### Request
-
-**Headers**:
-```
-Authorization: Bearer <your_jwt_token>
-```
-
-**URL Params**:
-- userId: number
-
-#### Response
-
-**Success (200 OK)**:
-```json
-{
-  "status": true,
-  "statusCode": 200,
-  "message": "User profile fetched",
-  "data": {
-    "user_id": 1,
-    "user_email": "john.doe@example.com",
-    "first_name": "John",
-    "last_name": "Doe",
-    "profile_image": "https://res.cloudinary.com/demo/image/upload/v1/playmate/user_1.jpg",
-    "sports": [
-      { "sport_id": 2, "sport_name": "Basketball", "skill_level": "intermediate" }
-    ],
-    "created_at": "2025-01-04T10:00:00.000Z",
-    "updated_at": "2025-01-04T10:20:00.000Z"
-  },
-  "timestamp": "2025-01-04T10:30:00.000Z"
-}
-```
-
-#### Error Responses
-
-- 401 Unauthorized:
-```json
-{ "status": false, "statusCode": 401, "message": "Invalid or expired token", "timestamp": "2025-01-04T10:30:00.000Z" }
-```
-- 404 Not Found:
-```json
-{ "status": false, "statusCode": 404, "message": "User not found", "timestamp": "2025-01-04T10:30:00.000Z" }
-```
-
-#### cURL Example
-
-```bash
-curl -X GET http://localhost:4000/api/v1/users/profile/1 \
-  -H "Authorization: Bearer <your_jwt_token>"
-```
-
-#### Special Notes
-
-- Only authenticated users can access; consider restricting to self or admin.
-- Ensure minimal PII leakage.
-
----
-
-### 13. Update User Details
-
-**PUT** `/api/v1/users/updateDetails`
-
-Update user details with optional profile image upload.
-
-#### Request
-
-**Headers**:
-```
-Authorization: Bearer <your_jwt_token>
-Content-Type: multipart/form-data
-```
-
-**Body (multipart/form-data)**:
-- first_name: string (optional, max 50)
-- last_name: string (optional, max 50)
-- profile_image: file (optional; JPG/JPEG/PNG; ≤5MB)
-
-**Validation Rules**:
-- Names trimmed; only letters, spaces, hyphens, apostrophes
-- profile_image: types: image/jpeg, image/png, image/jpg; size ≤ MAX_FILE_SIZE
-
-#### Response
-
-**Success (200 OK)**:
-```json
-{
-  "status": true,
-  "statusCode": 200,
-  "message": "User details updated",
-  "data": {
-    "user_id": 1,
-    "first_name": "John",
-    "last_name": "Doe",
-    "profile_image": "https://res.cloudinary.com/demo/image/upload/v1/playmate/user_1.jpg",
-    "updated_at": "2025-01-04T10:30:00.000Z"
-  },
-  "timestamp": "2025-01-04T10:30:00.000Z"
-}
-```
-
-#### Error Responses
-
-- 400 Validation Failed:
-```json
-{ "status": false, "statusCode": 400, "message": "Validation failed", "timestamp": "2025-01-04T10:30:00.000Z" }
-```
-- 401 Unauthorized:
-```json
-{ "status": false, "statusCode": 401, "message": "Invalid or expired token", "timestamp": "2025-01-04T10:30:00.000Z" }
-```
-
-#### cURL Example
-
-```bash
-curl -X PUT http://localhost:4000/api/v1/users/updateDetails \
-  -H "Authorization: Bearer <your_jwt_token>" \
-  -F "first_name=John" \
-  -F "last_name=Doe" \
-  -F "profile_image=@/path/to/image.jpg"
-```
-
-#### Special Notes
-
-- Images uploaded to Cloudinary; previous image may be replaced.
-- Server enforces file-type and size checks via Multer + Cloudinary.
-
----
-
-### 14. Add User Sport
-
-**POST** `/api/v1/users/userSport`
-
-Add a sport to the authenticated user with optional skill level.
-
-#### Request
-
-**Headers**:
-```
-Authorization: Bearer <your_jwt_token>
-Content-Type: application/json
-```
-
-**Body**:
-```json
-{
-  "sport_id": 2,
-  "skill_level": "beginner"
-}
-```
-
-**Validation Rules**:
-- sport_id: required, numeric, must exist
-- skill_level: optional; one of ["beginner","intermediate","advanced","pro"]
-
-#### Response
-
-**Success (201 Created)**:
-```json
-{
-  "status": true,
-  "statusCode": 201,
-  "message": "User sport added",
-  "data": { "user_id": 1, "sport_id": 2, "skill_level": "beginner" },
-  "timestamp": "2025-01-04T10:30:00.000Z"
-}
-```
-
-#### Error Responses
-
-- 400 Validation Failed:
-```json
-{ "status": false, "statusCode": 400, "message": "Validation failed", "timestamp": "2025-01-04T10:30:00.000Z" }
-```
-- 401 Unauthorized:
-```json
-{ "status": false, "statusCode": 401, "message": "Invalid or expired token", "timestamp": "2025-01-04T10:30:00.000Z" }
-```
-- 404 Not Found (sport missing):
-```json
-{ "status": false, "statusCode": 404, "message": "Sport not found", "timestamp": "2025-01-04T10:30:00.000Z" }
-```
-- 409 Conflict (duplicate mapping):
-```json
-{ "status": false, "statusCode": 409, "message": "Sport already added for this user", "timestamp": "2025-01-04T10:30:00.000Z" }
-```
-
-#### cURL Example
-
-```bash
-curl -X POST http://localhost:4000/api/v1/users/userSport \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer <your_jwt_token>" \
-  -d '{ "sport_id": 2, "skill_level": "beginner" }'
-```
-
-#### Special Notes
-
-- Uniqueness enforced on (user_id, sport_id).
-- Skill level may be normalized to lowercase.
-
----
-
-### 15. Delete User Sport
-
-**DELETE** `/api/v1/users/deleteUserSport/:user_id/:sport_id`
-
-Remove a sport from a user.
-
-#### Request
-
-**Headers**:
-```
-Authorization: Bearer <your_jwt_token>
-```
-
-**URL Params**:
-- user_id: number
-- sport_id: number
-
-**Validation Rules**:
-- Call must be by the same user (user_id == JWT.sub) or admin.
-
-#### Response
-
-**Success (200 OK)**:
-```json
-{
-  "status": true,
-  "statusCode": 200,
-  "message": "User sport removed",
-  "data": { "user_id": 1, "sport_id": 2 },
-  "timestamp": "2025-01-04T10:30:00.000Z"
-}
-```
-
-#### Error Responses
-
-- 401 Unauthorized / 403 Forbidden:
-```json
-{ "status": false, "statusCode": 403, "message": "Not allowed to modify this resource", "timestamp": "2025-01-04T10:30:00.000Z" }
-```
-- 404 Not Found:
-```json
-{ "status": false, "statusCode": 404, "message": "User sport not found", "timestamp": "2025-01-04T10:30:00.000Z" }
-```
-
-#### cURL Example
-
-```bash
-curl -X DELETE http://localhost:4000/api/v1/users/deleteUserSport/1/2 \
-  -H "Authorization: Bearer <your_jwt_token>"
-```
-
-#### Special Notes
-
-- Deletion is idempotent; deleting a non-existent mapping returns 404.
-- Audit logs recommended for user activity.
-
----
-
-## 🔐 Password Requirements
-
-All password fields must meet these security requirements:
-
-### Requirements
-
-| Requirement | Rule | Example |
-|-------------|------|---------|
-| **Length** | 8-60 characters | `MyPass123!` ✅ |
-| **Uppercase** | At least 1 (A-Z) | `mypass123!` ❌ → `Mypass123!` ✅ |
-| **Lowercase** | At least 1 (a-z) | `MYPASS123!` ❌ → `MyPass123!` ✅ |
-| **Digit** | At least 1 (0-9) | `MyPassword!` ❌ → `MyPass123!` ✅ |
-| **Special** | At least 1 special char | `MyPass123` ❌ → `MyPass123!` ✅ |
-
-### Allowed Special Characters
-
-```
-! @ # $ % ^ & * ( ) _ + - = [ ] { } | ; : , . < > ?
-```
-
-### Valid Examples ✅
-
-```
-SecurePass123!
-MyP@ssw0rd
-C0mpl3x#Pass
-Str0ng!P@ssw0rd
-Test123!@#
-Player$2025
-G00d_P@ss
-MySecure#123
-```
-
-### Invalid Examples ❌
-
-```
-short1!           → Too short (minimum 8 characters)
-nouppercase123!   → No uppercase letter
-NOLOWERCASE123!   → No lowercase letter
-NoNumbers!        → No digit
-NoSpecial123      → No special character
-weak              → Multiple requirements missing
 ```
 
 ---
-
-### Standard Response Format
-
-**Success Response**:
-```json
-{
-  "status": true,
-  "statusCode": 200,
-  "message": "Operation successful",
-  "data": {
-    // Response data
-  },
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...", // Optional
-  "timestamp": "2025-01-04T10:30:00.000Z"
-}
-```
-
-**Error Response**:
-```json
-{
-  "status": false,
-  "statusCode": 400,
-  "message": "Error description",
-  "errors": [
-    {
-      "field": "field_name",
-      "message": "Specific error message"
-    }
-  ],
-  "timestamp": "2025-01-04T10:30:00.000Z"
-}
-```
-
-### HTTP Status Codes Used
-
-| Code | Description | When Used |
-|------|-------------|-----------|
-| 200 | OK | Successful request |
-| 201 | Created | Resource created (registration) |
-| 400 | Bad Request | Validation error, invalid input |
-| 401 | Unauthorized | Invalid/missing token |
-| 404 | Not Found | Resource not found (email) |
-| 409 | Conflict | Duplicate resource (email exists) |
-| 500 | Internal Server Error | Server/database error |
-| 503 | Service Unavailable | Service/database down |
 
 ## 🗄️ Database Schema
 
-For complete database documentation, see [docs/DATABASE.md](docs/DATABASE.md)
+The Playmate API uses MySQL 8.0+ with a relational database schema designed for scalability and data integrity.
 
-### Tables Overview
+### Database Configuration
 
-**users**: Core user information
-- Primary Key: `user_id`
-- Unique: `user_email`
-- Indexes: `idx_user_email`
-
-**sports**: Available sports catalog
-- Primary Key: `sport_id`
-- Unique: `sport_name`
-- Indexes: `idx_sport_name`
-
-**user_sports**: User-sport associations with skill levels
-- Primary Key: `user_sport_id`
-- Foreign Keys: `user_id`, `sport_id`
-- Unique: `(user_id, sport_id)`
-- Indexes: `idx_user_id`, `idx_sport_id`
-
-### Relationships
-```
-users (1) ----< (N) user_sports (N) >---- (1) sports
+**Connection Pool Settings** (in `config/db.js`):
+```javascript
+{
+  host: process.env.DB_HOST,
+  port: process.env.DB_PORT,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0
+}
 ```
 
-## 🏗️ Architecture
-
-### Project Structure
+### Entity Relationship Overview
 
 ```
-playmate/
-├── app.js                    # Application entry point
-├── package.json              # Dependencies and scripts
-├── .env                      # Environment variables (gitignored)
-├── .gitignore               # Git ignore rules
-├── config/
-│   └── db.js                # Database connection pool
-├── controllers/
-│   └── authController.js    # Authentication business logic
-├── middleware/
-│   ├── authUser.js          # JWT verification middleware
-│   ├── multer.js            # File upload configuration
-│   └── validation.js        # Request validation rules
-├── models/
-│   ├── User.js              # User data access layer
-│   ├── Sport.js             # Sport data access layer
-│   └── UserSport.js         # UserSport data access layer
-├── routes/
-│   └── authRouter.js        # Authentication routes
-├── utils/
-│   ├── AuthHelpers.js       # Authentication helper functions
-│   ├── Cloudinary.js        # Cloudinary upload utility
-│   ├── Mail.js              # Email sending utility
-│   ├── emailTemplates.js    # HTML email templates
-│   └── Response.js          # Standardized response builder
-└── docs/
-    ├── API.md               # Detailed API documentation
-    ├── DATABASE.md          # Database schema and design
-    ├── DEPLOYMENT.md        # Deployment guide
-    └── CONTRIBUTING.md      # Contribution guidelines
+┌─────────────┐         ┌──────────────┐         ┌─────────────┐
+│   Users     │◄───────►│ User_Sports  │◄───────►│   Sports    │
+└─────────────┘         └──────────────┘         └─────────────┘
+                                                         ▲
+                                                         │
+                        ┌──────────────┐                │
+                        │Venue_Sports  │◄───────────────┘
+                        └──────────────┘
+                               ▲
+                               │
+                        ┌─────────────┐
+                        │   Venues    │
+                        └─────────────┘
 ```
 
-### Design Patterns
+### Tables
 
-**MVC Pattern**: Model-View-Controller separation
-- **Models**: Database interaction layer
-- **Controllers**: Business logic
-- **Routes**: API endpoints (View equivalent)
+#### 1. **users**
+Stores user account information and authentication credentials.
 
-**Middleware Chain**: Request processing pipeline
+```sql
+CREATE TABLE users (
+    user_id INT AUTO_INCREMENT PRIMARY KEY,
+    user_email VARCHAR(100) NOT NULL UNIQUE,
+    user_password VARCHAR(61) NOT NULL,
+    first_name VARCHAR(50) NOT NULL,
+    last_name VARCHAR(50) NULL,
+    profile_image VARCHAR(165) NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_user_email (user_email)
+);
 ```
-Request → Multer → Validation → Auth → Controller → Response
+
+**Columns**:
+- `user_id`: Primary key, auto-increment
+- `user_email`: Unique email address, indexed for fast lookups
+- `user_password`: Bcrypt hashed password (60 chars + 1 for null terminator)
+- `first_name`: Required, 1-50 characters
+- `last_name`: Optional, 1-50 characters
+- `profile_image`: Cloudinary URL or default image
+- `created_at`: Registration timestamp
+
+**Indexes**:
+- PRIMARY KEY on `user_id`
+- UNIQUE INDEX on `user_email`
+
+---
+
+#### 2. **sports**
+Catalog of available sports.
+
+```sql
+CREATE TABLE sports (
+    sport_id INT AUTO_INCREMENT PRIMARY KEY,
+    sport_name VARCHAR(100) NOT NULL UNIQUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_sport_name (sport_name)
+);
 ```
 
-**Repository Pattern**: Models abstract database operations
+**Columns**:
+- `sport_id`: Primary key, auto-increment
+- `sport_name`: Unique sport name, indexed
+- `created_at`: Creation timestamp
 
-**Factory Pattern**: Response utility creates consistent responses
+**Indexes**:
+- PRIMARY KEY on `sport_id`
+- UNIQUE INDEX on `sport_name`
+
+**Default Sports**: Cricket, Pickleball
+
+---
+
+#### 3. **user_sports**
+Many-to-many relationship between users and sports with skill level tracking.
+
+```sql
+CREATE TABLE user_sports (
+    user_sport_id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    sport_id INT NOT NULL,
+    skill_level ENUM('Beginner', 'Intermediate', 'Pro') NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+    FOREIGN KEY (sport_id) REFERENCES sports(sport_id) ON DELETE CASCADE,
+    UNIQUE KEY unique_user_sport (user_id, sport_id),
+    INDEX idx_user_id (user_id),
+    INDEX idx_sport_id (sport_id)
+);
+```
+
+**Columns**:
+- `user_sport_id`: Primary key, auto-increment
+- `user_id`: Foreign key to users table
+- `sport_id`: Foreign key to sports table
+- `skill_level`: Enum - Beginner, Intermediate, or Pro
+- `created_at`: Association timestamp
+
+**Indexes**:
+- PRIMARY KEY on `user_sport_id`
+- FOREIGN KEY on `user_id` → `users.user_id` (CASCADE DELETE)
+- FOREIGN KEY on `sport_id` → `sports.sport_id` (CASCADE DELETE)
+- UNIQUE COMPOSITE on `(user_id, sport_id)`
+- INDEX on `user_id`
+- INDEX on `sport_id`
+
+**Constraints**:
+- A user can only add a sport once (enforced by unique composite key)
+- Deleting a user removes all their sport associations
+- Deleting a sport removes all user associations
+
+---
+
+#### 4. **venues**
+Stores venue/facility information and owner details.
+
+```sql
+CREATE TABLE venues (
+    venue_id INT AUTO_INCREMENT PRIMARY KEY,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    password VARCHAR(61) NOT NULL,
+    first_name VARCHAR(50) NOT NULL,
+    last_name VARCHAR(50) NULL,
+    phone VARCHAR(20) NOT NULL,
+    profile_image VARCHAR(160) DEFAULT 'https://res.cloudinary.com/dsw5tkkyr/image/upload/v1764845539/avatar_wcaknk.png',
+    venue_name VARCHAR(100) NOT NULL,
+    address VARCHAR(150) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_venue_email (email),
+    INDEX idx_venue_name (venue_name)
+);
+```
+
+**Columns**:
+- `venue_id`: Primary key, auto-increment
+- `email`: Unique owner email, indexed
+- `password`: Bcrypt hashed password
+- `first_name`: Owner's first name
+- `last_name`: Owner's last name (optional)
+- `phone`: Contact phone number
+- `profile_image`: Cloudinary URL with default fallback
+- `venue_name`: Facility name, indexed
+- `address`: Physical location
+- `created_at`: Registration timestamp
+
+**Indexes**:
+- PRIMARY KEY on `venue_id`
+- UNIQUE INDEX on `email`
+- INDEX on `venue_name`
+
+---
+
+#### 5. **venue_sports**
+Many-to-many relationship between venues and sports with pricing.
+
+```sql
+CREATE TABLE venue_sports (
+    venue_sport_id INT AUTO_INCREMENT PRIMARY KEY,
+    venue_id INT NOT NULL,
+    sport_id INT NOT NULL,
+    price_per_hour DECIMAL(10,2) NOT NULL CHECK (price_per_hour >= 0),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (venue_id) REFERENCES venues(venue_id) ON DELETE CASCADE,
+    FOREIGN KEY (sport_id) REFERENCES sports(sport_id) ON DELETE CASCADE,
+    UNIQUE KEY unique_venue_sport (venue_id, sport_id),
+    INDEX idx_venue_id (venue_id),
+    INDEX idx_sport_id (sport_id)
+);
+```
+
+**Columns**:
+- `venue_sport_id`: Primary key, auto-increment
+- `venue_id`: Foreign key to venues table
+- `sport_id`: Foreign key to sports table
+- `price_per_hour`: Hourly rate (must be ≥ 0)
+- `created_at`: Association timestamp
+
+**Indexes**:
+- PRIMARY KEY on `venue_sport_id`
+- FOREIGN KEY on `venue_id` → `venues.venue_id` (CASCADE DELETE)
+- FOREIGN KEY on `sport_id` → `sports.sport_id` (CASCADE DELETE)
+- UNIQUE COMPOSITE on `(venue_id, sport_id)`
+- INDEX on `venue_id`
+- INDEX on `sport_id`
+
+**Constraints**:
+- `price_per_hour` must be non-negative
+- A venue can only offer a sport once
+- Deleting a venue removes all sport associations
+
+---
+
+#### 6. **venue_sport_courts**
+Court/facility management for venue sports (implementation in progress).
+
+**Purpose**: Tracks individual courts/fields within a venue for a specific sport.
+
+**Planned Schema**:
+```sql
+CREATE TABLE venue_sport_courts (
+    court_id INT AUTO_INCREMENT PRIMARY KEY,
+    venue_sport_id INT NOT NULL,
+    court_name VARCHAR(50) NOT NULL,
+    status ENUM('available', 'occupied', 'maintenance') DEFAULT 'available',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (venue_sport_id) REFERENCES venue_sports(venue_sport_id) ON DELETE CASCADE,
+    INDEX idx_venue_sport (venue_sport_id)
+);
+```
+
+---
+
+### Database Initialization
+
+Tables are automatically created on application startup via model methods:
+
+```javascript
+// In each model file
+User.createTable().catch(console.error);
+Sport.createTable().catch(console.error);
+UserSport.createTable().catch(console.error);
+Venue.createTable().catch(console.error);
+VenueSport.createTable().catch(console.error);
+```
+
+### Migration Strategy
+
+**Current**: Auto-creation on startup (suitable for development)
+
+**Recommended for Production**:
+- Use migration tools (e.g., `knex.js`, `sequelize migrations`)
+- Version control for schema changes
+- Rollback capabilities
+- Separate migration environment
+
+### Performance Optimizations
+
+1. **Indexes**:
+   - All primary keys are indexed by default
+   - Email columns indexed for authentication lookups
+   - Foreign keys indexed for JOIN operations
+   - Unique constraints prevent duplicates and improve lookup speed
+
+2. **Connection Pooling**:
+   - 10 concurrent connections
+   - Reuses connections for better performance
+   - Automatic connection management
+
+3. **Prepared Statements**:
+   - All queries use parameterized statements
+   - Prevents SQL injection
+   - Improves query execution plan caching
+
+4. **Foreign Key Cascades**:
+   - `ON DELETE CASCADE` for automatic cleanup
+   - Maintains referential integrity
+   - Reduces manual cleanup queries
+
+---
 
 ## 🔒 Security
 
@@ -1126,60 +1396,6 @@ For detailed deployment guide, see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
 - [ ] Location-based services
 - [ ] Mobile app support
 
-## 📦 Models & Future Endpoints
-
-### Current Models
-
-**User Model** (`models/User.js`):
-- findByEmail(email)
-- findById(id)
-- create(userData)
-- update(userId, userData)
-- validatePassword(inputPassword, hashedPassword)
-
-**Sport Model** (`models/Sport.js`):
-- findAll()
-- findById(id)
-- findByName(name)
-- create(sportData)
-
-**UserSport Model** (`models/UserSport.js`):
-- create(userSportData)
-- findByUserId(userId)
-- findBySportId(sportId)
-- update(userSportId, data)
-- delete(userSportId)
-
-### Planned Endpoints
-
-**Sports Management** (Admin):
-```
-GET    /api/v1/sports              # List all sports
-GET    /api/v1/sports/:id          # Get sport details
-POST   /api/v1/sports              # Create new sport
-PUT    /api/v1/sports/:id          # Update sport
-DELETE /api/v1/sports/:id          # Delete sport
-GET    /api/v1/sports/:id/stats    # Sport statistics
-```
-
-**User Sports**:
-```
-POST   /api/v1/users/sports                  # Add sport to profile
-GET    /api/v1/users/sports                  # Get user's sports
-PUT    /api/v1/users/sports/:userSportId     # Update skill level
-DELETE /api/v1/users/sports/:userSportId     # Remove sport
-GET    /api/v1/sports/:sportId/users         # Users by sport
-```
-
-**User Profile**:
-```
-GET    /api/v1/users/profile                 # Current user profile
-PUT    /api/v1/users/profile                 # Update profile
-POST   /api/v1/users/profile/image           # Update profile image
-DELETE /api/v1/users/profile/image           # Remove profile image
-GET    /api/v1/users/:userId                 # Public profile view
-```
-
 ## 🤝 Contributing
 
 We welcome contributions! Please see [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) for guidelines.
@@ -1221,4 +1437,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 **Made with ❤️ by Mitan Tank**
 
-*Last Updated: December 2024*
+*Last Updated: January 2026*
