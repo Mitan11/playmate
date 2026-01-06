@@ -5,7 +5,15 @@ const doc = {
         title: 'PlayMate API',
         description: 'API documentation for PlayMate application'
     },
-    host: 'localhost:4000'
+    host: 'localhost:4000',
+    securityDefinitions: {
+        bearerAuth: {
+            type: 'apiKey',
+            in: 'header',
+            name: 'Authorization',
+            description: 'Enter your bearer token in the format: Bearer <token>'
+        }
+    }
 };
 
 const outputFile = './swagger-output.json';
