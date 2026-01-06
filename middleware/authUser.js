@@ -1,5 +1,5 @@
 import User from "../models/User.js";
-import VenueOwner from "../models/VenueOwner.js";
+import Venue from "../models/Venue.js";
 import AuthHelpers from "../utils/AuthHelpers.js";
 import Response from "../utils/Response.js";
 
@@ -74,7 +74,7 @@ const venueVerifyToken = async (req, res, next) => {
         }
 
         // find user by id
-        const venueOwner = await VenueOwner.findById(decoded.id);
+        const venueOwner = await Venue.findById(decoded.id);
 
         if (!venueOwner) {
             return res.status(404).json(
@@ -98,4 +98,4 @@ const venueVerifyToken = async (req, res, next) => {
 }
 
 
-export { verifyToken, venueVerifyToken };
+export { verifyToken , venueVerifyToken };

@@ -23,59 +23,42 @@
     },
     "/api/v1/auth/register": {
       "post": {
-        "summary": "Register a new user",
         "tags": [
-          "Auth"
+          "Authentication"
         ],
-        "consumes": [
-          "multipart/form-data"
-        ],
+        "description": "Register a new user",
         "parameters": [
           {
-            "name": "first_name",
-            "in": "formData",
-            "type": "string",
-            "required": true,
-            "example": "Mitan"
-          },
-          {
-            "name": "last_name",
-            "in": "formData",
-            "type": "string",
-            "required": true,
-            "example": "Tank"
-          },
-          {
-            "name": "user_email",
-            "in": "formData",
-            "type": "string",
-            "required": true,
-            "example": "mitan@example.com"
-          },
-          {
-            "name": "user_password",
-            "in": "formData",
-            "type": "string",
-            "required": true,
-            "example": "password123"
-          },
-          {
-            "name": "profile_image",
-            "in": "formData",
-            "type": "file",
-            "required": false,
-            "description": "Upload profile image file"
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "first_name": {
+                  "example": "any"
+                },
+                "last_name": {
+                  "example": "any"
+                },
+                "user_email": {
+                  "example": "any"
+                },
+                "user_password": {
+                  "example": "any"
+                }
+              }
+            }
           }
         ],
         "responses": {
           "201": {
-            "description": "User created successfully"
+            "description": "Created"
           },
           "400": {
             "description": "Bad Request"
           },
           "409": {
-            "description": "Email already exists"
+            "description": "Conflict"
           },
           "500": {
             "description": "Internal Server Error"
@@ -85,11 +68,10 @@
     },
     "/api/v1/auth/login": {
       "post": {
-        "summary": "User login",
-        "description": "",
         "tags": [
-          "Auth"
+          "Authentication"
         ],
+        "description": "User login",
         "parameters": [
           {
             "name": "body",
@@ -129,9 +111,9 @@
     "/api/v1/auth/health": {
       "get": {
         "tags": [
-          "Auth"
+          "Authentication"
         ],
-        "summary": "Health check",
+        "description": "Health check endpoint",
         "responses": {
           "200": {
             "description": "OK"
@@ -142,9 +124,9 @@
     "/api/v1/auth/check-email": {
       "post": {
         "tags": [
-          "Auth"
+          "Authentication"
         ],
-        "summary": "Check if email exists",
+        "description": "Check if email exists",
         "parameters": [
           {
             "name": "body",
@@ -175,10 +157,9 @@
     "/api/v1/auth/reset-password-email": {
       "post": {
         "tags": [
-          "Auth"
+          "Authentication"
         ],
-        "summary": "Send reset password email",
-        "description": "",
+        "description": "Send password reset email",
         "parameters": [
           {
             "name": "body",
@@ -212,10 +193,9 @@
     "/api/v1/auth/reset-password": {
       "post": {
         "tags": [
-          "Auth"
+          "Authentication"
         ],
-        "summary": "Reset user password",
-        "description": "",
+        "description": "Reset user password",
         "parameters": [
           {
             "name": "body",
@@ -252,9 +232,9 @@
     "/api/v1/auth/change-password": {
       "post": {
         "tags": [
-          "Auth"
+          "Authentication"
         ],
-        "description": "",
+        "description": "Change user password (requires authentication)",
         "parameters": [
           {
             "name": "authorization",
@@ -301,8 +281,7 @@
         "tags": [
           "Sports"
         ],
-        "summary": "Health check",
-        "description": "",
+        "description": "Health check endpoint for sports service",
         "responses": {
           "200": {
             "description": "OK"
@@ -315,8 +294,7 @@
         "tags": [
           "Sports"
         ],
-        "summary": "Add a new sport",
-        "description": "",
+        "description": "Add a new sport",
         "parameters": [
           {
             "name": "body",
@@ -352,8 +330,7 @@
         "tags": [
           "Sports"
         ],
-        "summary": "Get all sports",
-        "description": "",
+        "description": "Get all available sports",
         "responses": {
           "200": {
             "description": "OK"
@@ -369,8 +346,7 @@
         "tags": [
           "Sports"
         ],
-        "summary": "Update a sport",
-        "description": "",
+        "description": "Update sport details by ID",
         "parameters": [
           {
             "name": "sportId",
@@ -412,8 +388,7 @@
         "tags": [
           "Sports"
         ],
-        "summary": "Delete a sport",
-        "description": "",
+        "description": "Delete sport by ID",
         "parameters": [
           {
             "name": "sportId",
@@ -443,11 +418,7 @@
         "tags": [
           "User"
         ],
-        "summary": "Update user details",
-        "description": "",
-        "consumes": [
-          "multipart/form-data"
-        ],
+        "description": "Update user details",
         "parameters": [
           {
             "name": "authorization",
@@ -455,32 +426,22 @@
             "type": "string"
           },
           {
-            "name": "user_email",
-            "in": "formData",
-            "type": "string",
-            "required": true,
-            "example": "Mitan"
-          },
-          {
-            "name": "first_name",
-            "in": "formData",
-            "type": "string",
-            "required": true,
-            "example": "any"
-          },
-          {
-            "name": "last_name",
-            "in": "formData",
-            "type": "string",
-            "required": true,
-            "example": "any"
-          },
-          {
-            "name": "profile_image",
-            "in": "formData",
-            "type": "file",
-            "required": false,
-            "description": "Upload profile image file"
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "user_email": {
+                  "example": "any"
+                },
+                "first_name": {
+                  "example": "any"
+                },
+                "last_name": {
+                  "example": "any"
+                }
+              }
+            }
           }
         ],
         "responses": {
@@ -507,8 +468,7 @@
         "tags": [
           "User"
         ],
-        "summary": "Add a sport to a user",
-        "description": "",
+        "description": "Add sport to user profile",
         "parameters": [
           {
             "name": "authorization",
@@ -561,8 +521,7 @@
         "tags": [
           "User"
         ],
-        "summary": "Delete a sport from a user",
-        "description": "",
+        "description": "Remove sport from user profile",
         "parameters": [
           {
             "name": "user_id",
@@ -606,8 +565,658 @@
         "tags": [
           "User"
         ],
-        "summary": "Get user profile",
-        "description": "",
+        "description": "Get user profile by ID",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/venue/register": {
+      "post": {
+        "tags": [
+          "Venue"
+        ],
+        "description": "Register a new venue",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "email": {
+                  "example": "any"
+                },
+                "first_name": {
+                  "example": "any"
+                },
+                "last_name": {
+                  "example": "any"
+                },
+                "phone": {
+                  "example": "any"
+                },
+                "password": {
+                  "example": "any"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/v1/venue/login": {
+      "post": {
+        "tags": [
+          "Venue"
+        ],
+        "description": "Venue login",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "email": {
+                  "example": "any"
+                },
+                "password": {
+                  "example": "any"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/register": {
+      "post": {
+        "tags": [
+          "Venue"
+        ],
+        "description": "Register a new venue",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "email": {
+                  "example": "any"
+                },
+                "first_name": {
+                  "example": "any"
+                },
+                "last_name": {
+                  "example": "any"
+                },
+                "phone": {
+                  "example": "any"
+                },
+                "password": {
+                  "example": "any"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/login": {
+      "post": {
+        "tags": [
+          "Venue"
+        ],
+        "description": "Venue login",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "email": {
+                  "example": "any"
+                },
+                "password": {
+                  "example": "any"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "tags": [
+          "Sports"
+        ],
+        "description": "Health check endpoint for sports service",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/check-email": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "description": "Check if email exists",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "user_email": {
+                  "example": "any"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/reset-password-email": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "description": "Send password reset email",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "user_email": {
+                  "example": "any"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/reset-password": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "description": "Reset user password",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "user_email": {
+                  "example": "any"
+                },
+                "new_password": {
+                  "example": "any"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/change-password": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "description": "Change user password (requires authentication)",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "currentPassword": {
+                  "example": "any"
+                },
+                "newPassword": {
+                  "example": "any"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/addNewSport": {
+      "post": {
+        "tags": [
+          "Sports"
+        ],
+        "description": "Add a new sport",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "sport_name": {
+                  "example": "any"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/getAllSports": {
+      "get": {
+        "tags": [
+          "Sports"
+        ],
+        "description": "Get all available sports",
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/updateSport/{sportId}": {
+      "put": {
+        "tags": [
+          "Sports"
+        ],
+        "description": "Update sport details by ID",
+        "parameters": [
+          {
+            "name": "sportId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "sport_name": {
+                  "example": "any"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/deleteSport/{sportId}": {
+      "delete": {
+        "tags": [
+          "Sports"
+        ],
+        "description": "Delete sport by ID",
+        "parameters": [
+          {
+            "name": "sportId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/updateDetails": {
+      "put": {
+        "tags": [
+          "User"
+        ],
+        "description": "Update user details",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "user_email": {
+                  "example": "any"
+                },
+                "first_name": {
+                  "example": "any"
+                },
+                "last_name": {
+                  "example": "any"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/userSport": {
+      "post": {
+        "tags": [
+          "User"
+        ],
+        "description": "Add sport to user profile",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "user_id": {
+                  "example": "any"
+                },
+                "sport_id": {
+                  "example": "any"
+                },
+                "skill_level": {
+                  "example": "any"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/deleteUserSport/{user_id}/{sport_id}": {
+      "delete": {
+        "tags": [
+          "User"
+        ],
+        "description": "Remove sport from user profile",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "sport_id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/profile/{userId}": {
+      "get": {
+        "tags": [
+          "User"
+        ],
+        "description": "Get user profile by ID",
         "parameters": [
           {
             "name": "userId",
