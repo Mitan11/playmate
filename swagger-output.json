@@ -5,10 +5,10 @@
     "description": "API documentation for PlayMate application",
     "version": "1.0.0"
   },
-  "host": "playmate-taupe.vercel.app",
+  "host": "localhost:4000",
   "basePath": "/",
   "schemes": [
-    "https"
+    "http"
   ],
   "securityDefinitions": {
     "bearerAuth": {
