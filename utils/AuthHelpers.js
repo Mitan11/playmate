@@ -25,8 +25,9 @@ class AuthHelpers {
     // handles token generation
     async generateToken(payload) {
         try {
-            // generate JWT token
-            const token = JWT.sign({ id: payload.user_id }, process.env.JWT_SECRET, {
+            // generate JWT token - support both user_id and venue_id
+            const id = payload.user_id || payload.venue_id;
+            const token = JWT.sign({ id }, process.env.JWT_SECRET, {
                 expiresIn: process.env.JWT_EXPIRES_IN || '7d',
             });
 

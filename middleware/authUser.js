@@ -82,7 +82,7 @@ const venueVerifyToken = async (req, res, next) => {
             );
         }
 
-        delete venueOwner.user_password;
+        delete venueOwner.password;
 
         // Attach user info to request object
         req.user = venueOwner;

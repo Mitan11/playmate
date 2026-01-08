@@ -2,6 +2,9 @@ import express from "express";
 import 'dotenv/config';
 import cors from "cors";
 
+import path from "path";
+import { fileURLToPath } from "url";
+
 import db from "./config/db.js";
 import response from "./utils/Response.js";
 import authRouter from "./routes/authRouter.js";
@@ -46,7 +49,16 @@ class App {
         this.app.use("/api/v1/user", userSportRouter);
         this.app.use("/api/v1/venue", venueRouter);
 
-        this.app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+        // Swagger JSON endpoint
+        this.app.get("/api-docs/swagger.json", (req, res) => {
+            res.json(swaggerDocument);
+        });
+
+        // Swagger UI from file
+        this.app.get("/api-docs", (req, res) => {
+            const __dirname = path.dirname(fileURLToPath(import.meta.url));
+            res.sendFile(path.join(__dirname, 'views', 'apiDoc.html'));
+        });
     }
 
     async startLocalServer() {

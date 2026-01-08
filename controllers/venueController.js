@@ -131,4 +131,28 @@ const venueLogin = async (req, res) => {
     }
 }
 
-export { registerVenue, venueLogin };
+const venueProfile = async (req, res) => {
+    const connection = await db.getConnection();
+    try {
+        connection.beginTransaction();
+
+        const { venueId } = req.params;
+
+        if (!venueId || isNaN(venueId)) {
+            return res.status(400).json(Response.error(400, "Invalid venue ID"));
+        }
+
+        const venue = await Venue.findById(venueId, connection);
+
+        res.status(200).json(Response.success(200, "Venue Profile retrieved successfully", { venue }));        
+
+    } catch {
+        await connection.rollback();
+        console.error("Error fetching venue profile:", error);
+        res.status(500).json(Response.error(500, "Internal Server Error"));
+    } finally {
+        connection.release();
+    }
+}
+
+export { registerVenue, venueLogin, venueProfile };

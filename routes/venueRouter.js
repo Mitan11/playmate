@@ -1,5 +1,5 @@
 import express from 'express';
-import { registerVenue, venueLogin } from '../controllers/venueController.js';
+import { registerVenue, venueLogin, venueProfile } from '../controllers/venueController.js';
 import { venueVerifyToken } from '../middleware/authUser.js';
 
 const venueRouter = express.Router();
@@ -15,6 +15,12 @@ venueRouter.post('/login', (req, res) => {
     // #swagger.tags = ['Venue']
     // #swagger.description = 'Venue login'
     venueLogin(req, res);
+});
+
+venueRouter.get('/profile/:venueId', venueVerifyToken, (req, res) => {
+    // #swagger.tags = ['Venue']
+    // #swagger.description = 'Get venue profile by ID'
+    venueProfile(req, res);
 });
 
 export default venueRouter;

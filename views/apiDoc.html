@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Playmate API Docs</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.11.0/swagger-ui.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #1a1a1a;
+            color: #e0e0e0;
+            font-family: sans-serif;
+        }
+
+        /* Override all text to be light colored */
+        .swagger-ui,
+        .swagger-ui *,
+        .swagger-ui p,
+        .swagger-ui h1,
+        .swagger-ui h2,
+        .swagger-ui h3,
+        .swagger-ui h4,
+        .swagger-ui h5,
+        .swagger-ui h6,
+        .swagger-ui span,
+        .swagger-ui div,
+        .swagger-ui label {
+            color: #e0e0e0 !important;
+        }
+
+        .topbar {
+            background-color: #0d0d0d !important;
+            border-bottom: 1px solid #333;
+        }
+
+        .swagger-ui {
+            background-color: #1a1a1a !important;
+        }
+
+        .swagger-ui .topbar {
+            background-color: #0d0d0d !important;
+        }
+
+        .swagger-ui .info {
+            background-color: #1a1a1a !important;
+        }
+
+        .swagger-ui .info .title {
+            color: #22A06B !important;
+        }
+
+        .swagger-ui .info .description {
+            color: #b0b0b0 !important;
+        }
+
+        .swagger-ui .btn {
+            background-color: #22A06B;
+            border-color: #22A06B;
+            color: white !important;
+        }
+
+        .swagger-ui .btn:hover {
+            background-color: #1a7d52;
+            border-color: #1a7d52;
+        }
+
+        .swagger-ui .model {
+            background-color: #222;
+            border: 1px solid #333;
+        }
+
+        .swagger-ui .model-box {
+            background-color: #222;
+        }
+
+        .swagger-ui section.models {
+            border-color: #333;
+        }
+
+        .swagger-ui textarea {
+            background-color: #2a2a2a;
+            color: #e0e0e0;
+            border-color: #444;
+        }
+
+        .swagger-ui input,
+        .swagger-ui select {
+            background-color: #2a2a2a;
+            color: #e0e0e0;
+            border-color: #444;
+        }
+
+        .swagger-ui .parameter__name {
+            color: #e0e0e0 !important;
+        }
+
+        .swagger-ui table {
+            background-color: #222;
+        }
+
+        .swagger-ui table thead tr {
+            background-color: #2a2a2a;
+        }
+
+        .swagger-ui table tbody tr {
+            border-color: #333;
+        }
+
+        .swagger-ui .response-col_description {
+            color: #b0b0b0 !important;
+        }
+
+        .swagger-ui .scheme-container {
+            background-color: #222;
+            border-color: #333;
+        }
+
+        .swagger-ui .scheme-container h2 {
+            color: #e0e0e0 !important;
+        }
+
+        .swagger-ui section.models h4 {
+            color: #e0e0e0 !important;
+        }
+
+        /* Modal/Dialog Dark Mode */
+        .swagger-ui .dialog-ux {
+            background-color: #2a2a2a;
+        }
+
+        .swagger-ui .dialog-ux .modal-ux {
+            background-color: #1a1a1a;
+        }
+
+        .swagger-ui .dialog-ux .backdrop-ux {
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        .swagger-ui .authorizationPopup {
+            background-color: #222 !important;
+        }
+
+        .swagger-ui .modal-ux-header {
+            background-color: #0d0d0d !important;
+            color: #e0e0e0 !important;
+        }
+
+        .swagger-ui .modal-ux-header h3 {
+            color: #e0e0e0 !important;
+        }
+
+        .swagger-ui .modal-ux-header button {
+            color: #e0e0e0 !important;
+        }
+
+        .swagger-ui .modal-ux-content {
+            background-color: #222 !important;
+            color: #e0e0e0 !important;
+        }
+
+        .swagger-ui .modal-ux-content label {
+            color: #e0e0e0 !important;
+        }
+
+        .swagger-ui .modal-ux-content input,
+        .swagger-ui .modal-ux-content textarea {
+            background-color: #2a2a2a !important;
+            color: #e0e0e0 !important;
+            border-color: #444 !important;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="swagger-ui"></div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.11.0/swagger-ui-bundle.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.11.0/swagger-ui-standalone-preset.js"></script>
+    <script>
+        const ui = SwaggerUIBundle({
+            url: "/api-docs/swagger.json",
+            dom_id: '#swagger-ui',
+            presets: [
+                SwaggerUIBundle.presets.apis,
+                SwaggerUIStandalonePreset
+            ],
+            layout: "BaseLayout",
+            deepLinking: true
+        });
+    </script>
+</body>
+
+</html>

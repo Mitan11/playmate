@@ -124,9 +124,10 @@ const userProfile = async (req, res) => {
             return res.status(400).json(Response.error(400, "Invalid user ID"));
         }
         
-        const user = await UserSport.getUserSports(userId, connection);
+        const user = await User.findById(userId, connection);
 
-        res.status(200).json(Response.success(200, "User sports retrieved successfully", { user }));
+        res.status(200).json(Response.success(200, "User retrieved successfully", { user }));
+
     }catch (error) {
         await connection.rollback();
         console.error("Error fetching user sports:", error);
