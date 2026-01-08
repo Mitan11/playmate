@@ -1,11 +1,14 @@
 import swaggerAutogen from 'swagger-autogen';
 
+const isProduction = process.env.NODE_ENV === 'production';
+
 const doc = {
     info: {
         title: 'PlayMate API',
         description: 'API documentation for PlayMate application'
     },
-    host: 'localhost:4000',
+    host: isProduction ? 'playmate-taupe.vercel.app' : 'localhost:3000',
+    schemes: isProduction ? ['https'] : ['http'],
     securityDefinitions: {
         bearerAuth: {
             type: 'apiKey',
