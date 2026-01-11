@@ -117,10 +117,7 @@ const venueLogin = async (req, res) => {
         await connection.commit();
 
         res.status(200).json(
-            Response.success(200, "Venue logged in successfully", {
-                venue,
-                token
-            })
+            Response.success(200, "Venue logged in successfully", venue, token)
         );
 
     } catch (error) {
@@ -144,7 +141,7 @@ const venueProfile = async (req, res) => {
 
         const venue = await Venue.findById(venueId, connection);
 
-        res.status(200).json(Response.success(200, "Venue Profile retrieved successfully", { venue }));        
+        res.status(200).json(Response.success(200, "Venue Profile retrieved successfully", { venue }));
 
     } catch {
         await connection.rollback();

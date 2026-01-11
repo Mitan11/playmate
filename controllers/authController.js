@@ -317,7 +317,7 @@ const adminLogin = async (req, res) => {
 
 
         if (email != "admin@playmate.com" && password != "admin123") {
-            return res.status(401).json(Response.error(401, "Incorrect admin email or password"));
+            return res.status(401).json(Response.error(401, "Incorrect Credentials"));
         }
 
         const adminUser = {
@@ -330,8 +330,6 @@ const adminLogin = async (req, res) => {
         });
 
         req.user = adminUser;
-
-        console.log("Admin login successful:", adminUser);
 
         return res.status(200).json(Response.success(200, "Admin login successful", adminUser, token));
     } catch (error) {
