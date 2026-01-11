@@ -271,7 +271,7 @@ const resetPassword = async (req, res) => {
         return res.status(500).json(
             Response.error(500, "Reset password failed", error.message)
         );
-    } 
+    }
 }
 
 const changePassword = async (req, res) => {
@@ -307,5 +307,36 @@ const changePassword = async (req, res) => {
     }
 }
 
+import JWT from "jsonwebtoken";
 
-export { register, login, healthCheck, checkEmailExists, sendResetPasswordEmail, resetPassword, changePassword };
+const adminLogin = async (req, res) => {
+    try {
+        const { email, password } = req.body;
+
+        console.log("Admin login attempt:", email);
+
+
+        if (email != "admin@playmate.com" && password != "admin123") {
+            return res.status(401).json(Response.error(401, "Incorrect admin email or password"));
+        }
+
+        const adminUser = {
+            user_email: email,
+            role: "admin"
+        };
+
+        const token = JWT.sign({ id: adminUser.user_email }, process.env.JWT_SECRET, {
+            expiresIn: process.env.JWT_EXPIRES_IN || '7d',
+        });
+
+        req.user = adminUser;
+
+        console.log("Admin login successful:", adminUser);
+
+        return res.status(200).json(Response.success(200, "Admin login successful", adminUser, token));
+    } catch (error) {
+        res.status(500).json(Response.error(500, "Admin login failed", error.message));
+    }
+}
+
+export { register, login, healthCheck, checkEmailExists, sendResetPasswordEmail, resetPassword, changePassword, adminLogin };
