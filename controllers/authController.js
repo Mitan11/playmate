@@ -307,8 +307,6 @@ const changePassword = async (req, res) => {
     }
 }
 
-import JWT from "jsonwebtoken";
-
 const adminLogin = async (req, res) => {
     try {
         const { email, password } = req.body;
@@ -316,18 +314,17 @@ const adminLogin = async (req, res) => {
         console.log("Admin login attempt:", email);
 
 
-        if (email != "admin@playmate.com" && password != "admin123") {
+        if (email !== "admin@playmate.com" || password !== "admin@123") {
             return res.status(401).json(Response.error(401, "Incorrect Credentials"));
         }
 
         const adminUser = {
+            id: 0,
             user_email: email,
             role: "admin"
         };
 
-        const token = JWT.sign({ id: adminUser.user_email }, process.env.JWT_SECRET, {
-            expiresIn: process.env.JWT_EXPIRES_IN || '7d',
-        });
+        const token = await AuthHelpers.generateToken(adminUser);
 
         req.user = adminUser;
 
