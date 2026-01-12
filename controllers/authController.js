@@ -311,9 +311,6 @@ const adminLogin = async (req, res) => {
     try {
         const { email, password } = req.body;
 
-        console.log("Admin login attempt:", email);
-
-
         if (email !== "admin@playmate.com" || password !== "admin@123") {
             return res.status(401).json(Response.error(401, "Incorrect Credentials"));
         }
