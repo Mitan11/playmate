@@ -66,7 +66,7 @@ const venueVerifyToken = async (req, res, next) => {
 
         // Verify token
         const decoded = AuthHelpers.verifyToken(token);
-        
+
         if (!decoded || !decoded.id) {
             return res.status(401).json(
                 Response.error(401, "Invalid or expired token")
@@ -97,5 +97,48 @@ const venueVerifyToken = async (req, res, next) => {
     }
 }
 
+const adminVerifyToken = async (req, res, next) => {
+    try {
+        // Get token from header
+        const authHeader = req.headers.authorization;
+        // Check if token is present and well-formed
+        if (!authHeader || !authHeader.startsWith("Bearer ")) {
+            return res.status(401).json(
+                Response.error(401, "Authorization token missing or malformed")
+            );
+        }
 
-export { verifyToken , venueVerifyToken };
+        const token = authHeader.split(" ")[1];
+        // Verify token
+        const decoded = AuthHelpers.verifyToken(token);
+        if (!decoded || decoded.id === undefined) {
+            return res.status(401).json(
+                Response.error(401, "Invalid or expired token")
+            );
+        }
+
+        // Check if it's admin token (id should be 0 for admin)
+        if (decoded.id !== 0) {
+            return res.status(403).json(
+                Response.error(403, "Unauthorized: Admin access required")
+            );
+        }
+
+        // Attach admin info to request object
+        req.user = {
+            id: 0,
+            user_email: "admin@playmate.com",
+            role: "admin"
+        };
+
+        next();
+
+    } catch (error) {
+        console.error("Token verification error:", error);
+        return res.status(500).json(
+            Response.error(500, "Token verification failed")
+        );
+    }
+}
+
+export { verifyToken, venueVerifyToken, adminVerifyToken };

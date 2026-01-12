@@ -14,6 +14,7 @@ import userSportRouter from "./routes/userRouter.js";
 import swaggerUi from "swagger-ui-express";
 import swaggerDocument from "./swagger-output.json" with { type: "json" };
 import venueRouter from "./routes/venueRouter.js";
+import adminRouter from "./routes/adminRouter.js";
 
 class App {
     constructor() {
@@ -48,6 +49,7 @@ class App {
         this.app.use("/api/v1/sports", sportRouter);
         this.app.use("/api/v1/user", userSportRouter);
         this.app.use("/api/v1/venue", venueRouter);
+        this.app.use("/api/v1/admin", adminRouter);
 
         // Swagger JSON endpoint
         this.app.get("/api-docs/swagger.json", (req, res) => {
