@@ -1,8 +1,14 @@
 import express from "express";
 import { adminVerifyToken } from "../middleware/authUser.js";
-import { addSport, getAllSports } from "../controllers/adminControllers.js";
+import { addSport, adminLogin, getAllSports } from "../controllers/adminControllers.js";
 
 const adminRouter = express.Router();
+
+adminRouter.post('/admin-login', (req, res) => {
+    // #swagger.tags = ['Admin']
+    // #swagger.description = 'Admin login'
+    adminLogin(req, res);
+});
 
 adminRouter.get('/getAllSports', adminVerifyToken, (req, res) => {
     // #swagger.tags = ['Admin']
