@@ -1,5 +1,5 @@
 import express from 'express';
-import { adminLogin, changePassword, checkEmailExists, healthCheck, login, register, resetPassword, sendResetPasswordEmail, } from '../controllers/authController.js';
+import { changePassword, checkEmailExists, healthCheck, login, register, resetPassword, sendResetPasswordEmail, } from '../controllers/authController.js';
 import { handleValidationErrors, validateUserLogin, validateUserRegistration, validateResetPasswordEmail, validateResetPassword, validateChangePassword } from '../middleware/validation.js';
 import upload from '../middleware/multer.js';
 import { verifyToken } from '../middleware/authUser.js';
@@ -53,12 +53,6 @@ authRouter.post('/change-password', verifyToken, validateChangePassword, handleV
     // #swagger.tags = ['Authentication']
     // #swagger.description = 'Change user password (requires authentication)'
     changePassword(req, res);
-});
-
-authRouter.post('/admin-login', (req, res) => {
-    // #swagger.tags = ['Authentication']
-    // #swagger.description = 'Admin login'
-    adminLogin(req, res);
 });
 
 export default authRouter;

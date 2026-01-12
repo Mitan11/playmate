@@ -307,28 +307,4 @@ const changePassword = async (req, res) => {
     }
 }
 
-const adminLogin = async (req, res) => {
-    try {
-        const { email, password } = req.body;
-
-        if (email !== "admin@playmate.com" || password !== "admin@123") {
-            return res.status(401).json(Response.error(401, "Incorrect Credentials"));
-        }
-
-        const adminUser = {
-            id: 0,
-            user_email: email,
-            role: "admin"
-        };
-
-        const token = await AuthHelpers.generateToken(adminUser);
-
-        req.user = adminUser;
-
-        return res.status(200).json(Response.success(200, "Admin login successful", adminUser, token));
-    } catch (error) {
-        res.status(500).json(Response.error(500, "Admin login failed", error.message));
-    }
-}
-
-export { register, login, healthCheck, checkEmailExists, sendResetPasswordEmail, resetPassword, changePassword, adminLogin };
+export { register, login, healthCheck, checkEmailExists, sendResetPasswordEmail, resetPassword, changePassword };
