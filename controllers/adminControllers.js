@@ -86,4 +86,69 @@ const addSport = async (req, res) => {
     }
 }
 
-export { adminLogin, getAllSports, addSport };
+const updateSport = async (req, res) => {
+    const connection = await db.getConnection();
+    try {
+        connection.beginTransaction();
+        const { sport_id } = req.params;
+        const { sport_name } = req.body;
+
+        const trimmedSportName = capitalizeFirstLetter(sport_name.trim());
+
+        const exist = await Sport.findByName(trimmedSportName, connection);
+
+        if (exist && exist.sport_name.toLowerCase() === trimmedSportName.toLowerCase()) {
+            await connection.rollback();
+            return res.status(409).json(
+                Response.error(409, "Sport already exists")
+            );
+        }
+
+        const sport = await Sport.updateSport(sport_id, trimmedSportName, connection);
+
+        await connection.commit();
+
+        res.status(200).json(
+            Response.success(200, "Sport updated successfully", sport)
+        );
+
+    } catch (error) {
+        res.status(500).json(
+            Response.error(500, "Failed to update sport")
+        );
+    } finally {
+        connection.release();
+    }
+}
+
+const deleteSport = async (req, res) => {
+    const connection = await db.getConnection();
+    try {
+        connection.beginTransaction();
+        const { sport_id } = req.params;
+
+        const sport = await Sport.deleteSport(sport_id, connection);
+
+        await connection.commit();
+
+        if (!sport) {
+            return res.status(404).json(
+                Response.error(404, "Sport not found")
+            );
+        }
+
+        res.status(200).json(
+            Response.success(200, "Sport deleted successfully", sport)
+        );
+
+    } catch (error) {
+        await connection.rollback();
+        res.status(500).json(
+            Response.error(500, "Failed to delete sport")
+        );
+    } finally {
+        connection.release();
+    }
+}
+
+export { adminLogin, getAllSports, addSport , updateSport, deleteSport};

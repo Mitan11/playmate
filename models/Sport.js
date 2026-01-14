@@ -21,7 +21,7 @@ class Sport {
         try {
             await db.execute(createTableQuery);
             console.log('Sports table created or already exists');
-            
+
             // Insert some default sports if table is empty
             // await this.insertDefaultSports();
         } catch (error) {
@@ -97,7 +97,7 @@ class Sport {
         } catch (error) {
             console.error('Error finding sport by ID:', error);
             throw error;
-        }   
+        }
     }
 
     // Find sport by name
@@ -124,11 +124,11 @@ class Sport {
 
         try {
             const [result] = await conn.execute(updateQuery, [sportName, sportId]);
-            
+
             if (result.affectedRows === 0) {
                 return null; // Sport not found
             }
-            
+
             return await this.findById(sportId, conn);
         } catch (error) {
             console.error('Error updating sport:', error);
