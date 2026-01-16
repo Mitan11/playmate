@@ -5,6 +5,7 @@ import Response from "../utils/Response.js";
 import AuthHelpers from "../utils/AuthHelpers.js";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime.js";
+import User from "../models/User.js";
 dayjs.extend(relativeTime);
 
 Sport.createTable().catch(console.error);
@@ -314,4 +315,91 @@ const getUserReport = async (req, res) => {
     }
 };
 
-export { adminLogin, getAllSports, addSport, updateSport, deleteSport, getDashboardStats, getSportMetrics, getRecentActivities, getBookingReport, getRevenueReport, getUserReport, getBookingMetrics };
+const getAllUsers = async (req, res) => {
+    const connection = await db.getConnection();
+    try {
+        const users = await User.getAllUsersDetails(connection);
+
+        // Group users by user_id and combine their sports
+        const userMap = new Map();
+
+        users.forEach(user => {
+            const { sport_name, skill_level, password, ...userDetails } = user;
+
+            if (!userMap.has(user.user_id)) {
+                userMap.set(user.user_id, {
+                    ...userDetails,
+                    sports: []
+                });
+            }
+
+            if (sport_name && skill_level) {
+                userMap.get(user.user_id).sports.push({
+                    sport_name,
+                    skill_level
+                });
+            }
+        });
+
+
+        const combinedUsers = Array.from(userMap.values());
+        res.status(200).json(Response.success(200, "Users fetched successfully", combinedUsers));
+    } catch (error) {
+        console.error("Error fetching users:", error);
+        res.status(500).json(Response.error(500, "Failed to fetch users"));
+    } finally {
+        connection.release();
+    }
+};
+
+const deleteUser = async (req, res) => {
+    try {
+        const { user_id } = req.params;
+
+        if (!user_id) {
+            return res.status(400).json({
+                status: false,
+                statusCode: 400,
+                message: 'User ID is required',
+            });
+        }
+
+        // Check if user exists
+        const [user] = await db.query(
+            'SELECT user_id FROM users WHERE user_id = ?',
+            [user_id]
+        );
+
+        if (user.length === 0) {
+            return res.status(404).json({
+                status: false,
+                statusCode: 404,
+                message: 'User not found',
+            });
+        }
+
+        // Delete user (CASCADE will handle everything)
+        await db.query(
+            'DELETE FROM users WHERE user_id = ?',
+            [user_id]
+        );
+
+        return res.status(200).json({
+            status: true,
+            statusCode: 200,
+            message: 'User deleted successfully',
+            data: { user_id },
+            timestamp: new Date(),
+        });
+
+    } catch (error) {
+        console.error('Delete user error:', error);
+        return res.status(500).json({
+            status: false,
+            statusCode: 500,
+            message: 'Internal server error',
+        });
+    }
+};
+
+export { adminLogin, getAllSports, addSport, updateSport, deleteSport, getDashboardStats, getSportMetrics, getRecentActivities, getBookingReport, getRevenueReport, getUserReport, getBookingMetrics, getAllUsers, deleteUser };

@@ -1,6 +1,6 @@
 import express from "express";
 import { adminVerifyToken } from "../middleware/authUser.js";
-import { addSport, adminLogin, deleteSport, getAllSports, getBookingMetrics, getBookingReport, getDashboardStats, getRecentActivities, getRevenueReport, getSportMetrics, getUserReport, updateSport } from "../controllers/adminControllers.js";
+import { addSport, adminLogin, deleteSport, deleteUser, getAllSports, getAllUsers, getBookingMetrics, getBookingReport, getDashboardStats, getRecentActivities, getRevenueReport, getSportMetrics, getUserReport, updateSport } from "../controllers/adminControllers.js";
 
 const adminRouter = express.Router();
 
@@ -74,6 +74,18 @@ adminRouter.get('/dashboard/user/report', adminVerifyToken, (req, res) => {
     // #swagger.tags = ['Admin']
     // #swagger.description = 'Get user report for dashboard'
     getUserReport(req, res);
+});
+
+adminRouter.get('/getAllUsers', (req, res) => {
+    // #swagger.tags = ['Admin']
+    // #swagger.description = 'Get all users for dashboard'
+    getAllUsers(req, res);
+});
+
+adminRouter.delete('/deleteUser/:user_id', adminVerifyToken, (req, res) => {
+    // #swagger.tags = ['Admin']
+    // #swagger.description = 'Delete user by user ID'
+    deleteUser(req, res);
 });
 
 export default adminRouter;
