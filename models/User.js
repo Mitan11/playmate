@@ -135,6 +135,18 @@ class User {
         }
     }
 
+    static async getAllUsersDetails(conn = db) {
+        try {
+            const [rows] = await conn.execute(
+                'select u.user_id, u.first_name, u.last_name, u.user_email, u.profile_image, s.sport_name, us.skill_level, u.created_at from users u join user_sports us on u.user_id = us.user_id join sports s on us.sport_id = s.sport_id order by u.user_id;'
+            );
+            return rows;
+        } catch (error) {
+            console.error('Error fetching all users:', error);
+            throw error;
+        }
+    }
+
 }
 
 export default User;
