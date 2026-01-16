@@ -67,11 +67,6 @@ class UserSport {
     static async getUserSports(userId, conn = db) {
         const selectQuery = `
         SELECT 
-            u.user_id,
-            u.first_name,
-            u.last_name,
-            u.user_email,
-            u.profile_image,
             s.sport_id,
             s.sport_name,
             us.skill_level
@@ -88,11 +83,6 @@ class UserSport {
 
             // Prepare response
             return {
-                user_id: rows[0].user_id,
-                first_name: rows[0].first_name,
-                last_name: rows[0].last_name,
-                user_email: rows[0].user_email,
-                profile_image: rows[0].profile_image,
                 sports: rows.map(r => ({
                     sport_id: r.sport_id,
                     sport_name: r.sport_name,
@@ -168,14 +158,21 @@ class UserSport {
     }
 
     // Find user sport by user ID and sport ID
-    static async findByUserAndSport(userId, sportId, conn = db) {
-        const selectQuery = `
+    static async findByUserAndSport(userId, sportId, skillLevel = null, conn = db) {
+        let selectQuery = `
             SELECT * FROM user_sports 
             WHERE user_id = ? AND sport_id = ?
         `;
 
+        const params = [userId, sportId];
+
+        if (skillLevel) {
+            selectQuery += ` AND skill_level = ?`;
+            params.push(skillLevel);
+        }
+
         try {
-            const [rows] = await conn.execute(selectQuery, [userId, sportId]);
+            const [rows] = await conn.execute(selectQuery, params);
             return rows.length > 0 ? new UserSport(rows[0]) : null;
         } catch (error) {
             console.error('Error finding user sport:', error);

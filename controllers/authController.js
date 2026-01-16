@@ -31,9 +31,9 @@ const register = async (req, res) => {
         if (existingUser) {
             await connection.rollback();
             return res.status(409).json(
-                Response.error(409, "User with this email already exists", [
-                    { field: 'user_email', message: 'Email is already registered' }
-                ])
+                Response.error(409, "User with this email already exists", {
+                    email_error: "Email is already registered"
+                })
             );
         }
 
@@ -99,7 +99,9 @@ const login = async (req, res) => {
 
         if (!user) {
             return res.status(404).json(
-                Response.error(404, "incorrect email or password")
+                Response.error(404, "incorrect email or password", {
+                    email_error: "Email not found"
+                })
             );
         }
 
@@ -107,7 +109,9 @@ const login = async (req, res) => {
         const isPasswordValid = await AuthHelpers.isPasswordValid(user.user_password, user_password);
         if (!isPasswordValid) {
             return res.status(401).json(
-                Response.error(401, "incorrect email or password")
+                Response.error(401, "incorrect email or password", {
+                    password_error: "Password is incorrect"
+                })
             );
         }
 
@@ -178,9 +182,9 @@ const checkEmailExists = async (req, res) => {
 
         // Validate email presence
         if (!user_email) {
-            return res.status(400).json(Response.error(400, "Email is required",
-                { field: 'user_email', message: 'Please provide an email address' }
-            ));
+            return res.status(400).json(Response.error(400, "Email is required", {
+                email_error: "Please provide an email address"
+            }));
         }
 
         // Check if user exists
@@ -214,7 +218,9 @@ const sendResetPasswordEmail = async (req, res) => {
         const user = await User.findByEmail(user_email);
 
         if (!user) {
-            return res.status(404).json(Response.error(404, "User not found"));
+            return res.status(404).json(Response.error(404, "User not found", {
+                email_error: "No account found with this email address"
+            }));
         }
 
         // Generate OTP
@@ -254,7 +260,9 @@ const resetPassword = async (req, res) => {
 
         // If user not found
         if (!user) {
-            return res.status(404).json(Response.error(404, "User not found"));
+            return res.status(404).json(Response.error(404, "User not found", {
+                email_error: "No account found with this email address"
+            }));
         }
 
         // Hash new password
@@ -283,14 +291,18 @@ const changePassword = async (req, res) => {
         const user = await User.findByEmail(user_email);
 
         if (!user) {
-            return res.status(404).json(Response.error(404, "User not found"));
+            return res.status(404).json(Response.error(404, "User not found", {
+                email_error: "No account found with this email address"
+            }));
         }
 
         // Validate current password
         const isPasswordValid = await AuthHelpers.isPasswordValid(user.user_password, currentPassword);
 
         if (!isPasswordValid) {
-            return res.status(400).json(Response.error(400, "Current password is incorrect"));
+            return res.status(400).json(Response.error(400, "Current password is incorrect", {
+                current_password_error: "Current password is incorrect"
+            }));
         }
 
         // Hash new password

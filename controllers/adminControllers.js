@@ -378,7 +378,6 @@ const deleteUser = async (req, res) => {
             });
         }
 
-        // Delete user (CASCADE will handle everything)
         await db.query(
             'DELETE FROM users WHERE user_id = ?',
             [user_id]
