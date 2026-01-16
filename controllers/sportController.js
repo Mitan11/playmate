@@ -2,6 +2,7 @@ import os from "os";
 import db from "../config/db.js";
 import Response from "../utils/Response.js";
 import Sport from "../models/Sport.js";
+import UserSport from "../models/UserSport.js";
 
 Sport.createTable().catch(console.error);
 
@@ -53,6 +54,7 @@ const healthCheck = async (req, res) => {
     });
 };
 
+// Admin Use (Not in use)
 const addNewSport = async (req, res) => {
     const connection = await db.getConnection();
     try {
@@ -221,11 +223,83 @@ const deleteSport = async (req, res) => {
         connection.release();
     }
 };
+//
+
+const addUserSport = async (req, res) => {
+    const connection = await db.getConnection();
+    try {
+        const { user_id, sport_id, skill_level } = req.body;
+
+        if (!user_id || isNaN(user_id)) {
+            await connection.rollback();
+            return res.status(400).json(Response.error(400, "Invalid user ID"));
+        }
+
+        if (!sport_id || isNaN(sport_id)) {
+            await connection.rollback();
+            return res.status(400).json(Response.error(400, "Invalid sport ID"));
+        }
+
+        if (!skill_level || !['Beginner', 'Intermediate', 'Pro'].includes(skill_level)) {
+            await connection.rollback();
+            return res.status(400).json(Response.error(400, "Invalid skill level"));
+        }
+
+        const existingUserSport = await UserSport.findByUserAndSport(user_id, sport_id, skill_level, connection);
+        if (existingUserSport) {
+            await connection.rollback();
+            return res.status(409).json(Response.error(409, "User sport already exists"));
+        }
+
+        const userSport = await UserSport.addUserSport({
+            user_id,
+            sport_id,
+            skill_level
+        }, connection);
+        await connection.commit();
+        res.status(201).json(
+            Response.success(201, "User sport added successfully", userSport)
+        );
+
+    } catch (error) {
+        await connection.rollback();
+        console.error("Error adding user sport:", error);
+        res.status(500).json(Response.error(500, "Internal Server Error"));
+    } finally {
+        connection.release();
+    }
+};
+
+const getUserSports = async (req, res) => {
+    const connection = await db.getConnection();
+    try {
+        const { userId } = req.params;
+        if (!userId || isNaN(userId)) {
+            await connection.rollback();
+            return res.status(400).json(Response.error(400, "Invalid user ID"));
+        }
+
+        const userSports = await UserSport.getUserSports(parseInt(userId), connection);
+
+        await connection.commit();
+        res.status(200).json(
+            Response.success(200, "User sports retrieved successfully", userSports)
+        );
+    } catch (error) {
+        await connection.rollback();
+        console.error("Error fetching user sports:", error);
+        res.status(500).json(Response.error(500, "Internal Server Error"));
+    }finally {
+        connection.release();
+    }
+};
 
 export {
     healthCheck,
     addNewSport,
     getAllSports,
     updateSport,
-    deleteSport
+    deleteSport,
+    addUserSport,
+    getUserSports
 };

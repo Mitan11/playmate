@@ -9,7 +9,9 @@ export const validateUserRegistration = [
         .withMessage('Please enter a valid email address')
         .normalizeEmail()
         .isLength({ max: 100 })
-        .withMessage('Email address is too long'),
+        .withMessage('Email address is too long')
+        .toLowerCase()
+        ,
 
     body('user_password')
         .isLength({ min: 8, max: 60 })
@@ -39,7 +41,8 @@ export const validateUserLogin = [
         .trim()
         .isEmail()
         .withMessage('Please enter a valid email address')
-        .normalizeEmail(),
+        .normalizeEmail()
+        .toLowerCase(),
 
     body('user_password')
         .notEmpty()
@@ -55,6 +58,7 @@ export const validateResetPasswordEmail = [
         .isEmail()
         .withMessage('Please enter a valid email address')
         .normalizeEmail()
+        .toLowerCase()
 ];
 
 // OTP verification validation
@@ -72,8 +76,8 @@ export const validateResetPassword = [
         .trim()
         .isEmail()
         .withMessage('Please enter a valid email address')
-        .normalizeEmail(),
-
+        .normalizeEmail()
+        .toLowerCase(),
     body('new_password')
         .isLength({ min: 8, max: 60 })
         .withMessage('Password must be 8 characters long')
@@ -98,7 +102,35 @@ export const validateChangePassword = [
 export const handleValidationErrors = (req, res, next) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-        return res.status(400).json(Response.error(400, "Validation errors occurred", errors.array()));
+        // Transform errors into field-specific format for frontend
+        const fieldErrors = {};
+        errors.array().forEach(error => {
+            const fieldName = error.path;
+            // Convert field names to frontend-friendly format
+            let errorKey = fieldName;
+            if (fieldName === 'user_email') {
+                errorKey = 'email_error';
+            } else if (fieldName === 'user_password') {
+                errorKey = 'password_error';
+            } else if (fieldName === 'first_name') {
+                errorKey = 'first_name_error';
+            } else if (fieldName === 'last_name') {
+                errorKey = 'last_name_error';
+            } else if (fieldName === 'new_password') {
+                errorKey = 'new_password_error';
+            } else if (fieldName === 'currentPassword') {
+                errorKey = 'current_password_error';
+            } else if (fieldName === 'newPassword') {
+                errorKey = 'new_password_error';
+            } else if (fieldName === 'otp') {
+                errorKey = 'otp_error';
+            } else {
+                errorKey = fieldName + '_error';
+            }
+            fieldErrors[errorKey] = error.msg;
+        });
+        
+        return res.status(400).json(Response.error(400, "Validation errors occurred", fieldErrors));
     }
     next();
 };
