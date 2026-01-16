@@ -67,6 +67,7 @@ class UserSport {
     static async getUserSports(userId, conn = db) {
         const selectQuery = `
         SELECT 
+            us.user_sport_id,
             s.sport_id,
             s.sport_name,
             us.skill_level
@@ -84,9 +85,10 @@ class UserSport {
             // Prepare response
             return {
                 sports: rows.map(r => ({
+                    user_sport_id: r.user_sport_id,
                     sport_id: r.sport_id,
                     sport_name: r.sport_name,
-                    skill_level: r.skill_level,
+                    skill_level: r.skill_level
                 }))
             };
 
@@ -142,14 +144,14 @@ class UserSport {
     }
 
     // Remove user sport
-    static async removeUserSport(userId, sportId, conn = db) {
+    static async removeUserSport(userSportId, conn = db) {
         const deleteQuery = `
             DELETE FROM user_sports 
-            WHERE user_id = ? AND sport_id = ?
+            WHERE user_sport_id = ?
         `;
 
         try {
-            const [result] = await conn.execute(deleteQuery, [userId, sportId]);
+            const [result] = await conn.execute(deleteQuery, [userSportId]);
             return result.affectedRows > 0;
         } catch (error) {
             console.error('Error removing user sport:', error);
