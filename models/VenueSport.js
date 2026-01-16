@@ -17,8 +17,19 @@ class VenueSport {
                 sport_id INT NOT NULL,
                 price_per_hour DECIMAL(10,2) NOT NULL CHECK (price_per_hour >= 0),
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (venue_id) REFERENCES venues(venue_id) ON DELETE CASCADE,
-                FOREIGN KEY (sport_id) REFERENCES sports(sport_id) ON DELETE CASCADE,
+                
+                CONSTRAINT fk_vs_venue
+                    FOREIGN KEY (venue_id)
+                    REFERENCES venues(venue_id)
+                    ON DELETE CASCADE
+                    ON UPDATE CASCADE,
+                
+                CONSTRAINT fk_vs_sport
+                    FOREIGN KEY (sport_id)
+                    REFERENCES sports(sport_id)
+                    ON DELETE CASCADE
+                    ON UPDATE CASCADE,
+                
                 UNIQUE KEY unique_venue_sport (venue_id, sport_id),
                 INDEX idx_venue_id (venue_id),
                 INDEX idx_sport_id (sport_id)

@@ -18,8 +18,19 @@ class UserSport {
                 sport_id INT NOT NULL,
                 skill_level ENUM('Beginner', 'Intermediate', 'Pro') NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
-                FOREIGN KEY (sport_id) REFERENCES sports(sport_id) ON DELETE CASCADE,
+                
+                CONSTRAINT fk_user_sports_user
+                    FOREIGN KEY (user_id)
+                    REFERENCES users(user_id)
+                    ON DELETE CASCADE
+                    ON UPDATE CASCADE,
+                
+                CONSTRAINT fk_user_sports_sport
+                    FOREIGN KEY (sport_id)
+                    REFERENCES sports(sport_id)
+                    ON DELETE CASCADE
+                    ON UPDATE CASCADE,
+                
                 UNIQUE KEY unique_user_sport (user_id, sport_id),
                 INDEX idx_user_id (user_id),
                 INDEX idx_sport_id (sport_id)
