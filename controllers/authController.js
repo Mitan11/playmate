@@ -109,9 +109,7 @@ const login = async (req, res) => {
         const isPasswordValid = await AuthHelpers.isPasswordValid(user.user_password, user_password);
         if (!isPasswordValid) {
             return res.status(401).json(
-                Response.error(401, "incorrect email or password", {
-                    password_error: "Password is incorrect"
-                })
+                Response.error(401, "incorrect email or password")
             );
         }
 
