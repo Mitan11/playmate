@@ -13,10 +13,16 @@ class VenueSportCourt {
                 court_id INT AUTO_INCREMENT PRIMARY KEY,
                 venue_sport_id INT NOT NULL,
                 court_name VARCHAR(50) NOT NULL,
-                FOREIGN KEY (venue_sport_id) REFERENCES venue_sports(venue_sport_id) ON DELETE CASCADE,
+                
+                CONSTRAINT fk_vsc_venue_sport
+                    FOREIGN KEY (venue_sport_id)
+                    REFERENCES venue_sports(venue_sport_id)
+                    ON DELETE CASCADE
+                    ON UPDATE CASCADE,
+                
                 UNIQUE KEY unique_court (venue_sport_id, court_name),
                 INDEX idx_venue_sport_id (venue_sport_id)
-            )
+            ) 
         `;
         try {
 
