@@ -1,5 +1,5 @@
 import express from 'express';
-import { addNewSport, addUserSport, deleteSport, getAllSports, getUserSports, healthCheck, updateSport } from '../controllers/sportController.js';
+import { addNewSport, addUserSport, deleteSport, deleteUserSport, getAllSports, getUserSports, healthCheck, updateSport } from '../controllers/sportController.js';
 import { verifyToken } from '../middleware/authUser.js';
 
 const sportRouter = express.Router();
@@ -49,6 +49,12 @@ sportRouter.get('/getUserSports/:userId', verifyToken, (req, res) => {
     // #swagger.tags = ['Sports']
     // #swagger.description = 'Get sports associated with a user'
     getUserSports(req, res);
+});
+
+sportRouter.delete('/deleteUserSport/:userSportId', verifyToken, (req, res) => {
+    // #swagger.tags = ['Sports']
+    // #swagger.description = 'Delete a sport from a user'
+    deleteUserSport(req, res);
 });
 
 export default sportRouter;

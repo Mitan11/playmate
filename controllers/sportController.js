@@ -115,6 +115,7 @@ const addNewSport = async (req, res) => {
 
 const getAllSports = async (req, res) => {
     const connection = await db.getConnection();
+    await connection.beginTransaction();
 
     try {
         const sports = await Sport.getAllSports(connection);
@@ -193,6 +194,7 @@ const updateSport = async (req, res) => {
 
 const deleteSport = async (req, res) => {
     const connection = await db.getConnection();
+    await connection.beginTransaction();
 
     try {
         const { sportId } = req.params;
@@ -227,6 +229,7 @@ const deleteSport = async (req, res) => {
 
 const addUserSport = async (req, res) => {
     const connection = await db.getConnection();
+    await connection.beginTransaction();
     try {
         const { user_id, sport_id, skill_level } = req.body;
 
@@ -272,6 +275,7 @@ const addUserSport = async (req, res) => {
 
 const getUserSports = async (req, res) => {
     const connection = await db.getConnection();
+    await connection.beginTransaction();
     try {
         const { userId } = req.params;
         if (!userId || isNaN(userId)) {
@@ -289,7 +293,35 @@ const getUserSports = async (req, res) => {
         await connection.rollback();
         console.error("Error fetching user sports:", error);
         res.status(500).json(Response.error(500, "Internal Server Error"));
-    }finally {
+    } finally {
+        connection.release();
+    }
+};
+
+const deleteUserSport = async (req, res) => {
+    const connection = await db.getConnection();
+    await connection.beginTransaction();
+    try {
+        const { userSportId } = req.params;
+        if (!userSportId || isNaN(userSportId)) {
+            await connection.rollback();
+            return res.status(400).json(Response.error(400, "Invalid user sport ID"));
+        }
+        const deleted = await UserSport.removeUserSport(parseInt(userSportId), connection);
+        if (!deleted) {
+            await connection.rollback();
+            return res.status(404).json(Response.error(404, "User sport not found"));
+        }
+
+        await connection.commit();
+        res.status(200).json(
+            Response.success(200, "User sport deleted successfully")
+        );
+    } catch (error) {
+        await connection.rollback();
+        console.error("Error deleting user sport:", error);
+        res.status(500).json(Response.error(500, "Internal Server Error"));
+    } finally {
         connection.release();
     }
 };
@@ -301,5 +333,6 @@ export {
     updateSport,
     deleteSport,
     addUserSport,
-    getUserSports
+    getUserSports,
+    deleteUserSport
 };
