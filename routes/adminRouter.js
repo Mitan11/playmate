@@ -1,6 +1,6 @@
 import express from "express";
 import { adminVerifyToken } from "../middleware/authUser.js";
-import { addSport, adminLogin, deleteSport, deleteUser, getAllSports, getAllUsers, getBookingMetrics, getBookingReport, getDashboardStats, getRecentActivities, getRevenueReport, getSportMetrics, getUserReport, updateSport } from "../controllers/adminControllers.js";
+import { addSport, adminLogin, deleteSport, deleteUser, getAllSports, getAllUsers, getBookingMetrics, getBookingReport, getDashboardStats, getRecentActivities, getRevenueReport, getSportMetrics, getUserReport, updateSport, getUserGrowthReport, getVenueGrowthReport, getBookingTrendReport, getMonthlyRevenueReport, getRevenueByVenue, getRevenueBySport, getMostPlayedSports, getMostBookedVenues, getPeakBookingHours, getTopUsersByBookings, getMostLikedPosts, getTopContentCreators } from "../controllers/adminControllers.js";
 
 const adminRouter = express.Router();
 
@@ -86,6 +86,79 @@ adminRouter.delete('/deleteUser/:user_id', adminVerifyToken, (req, res) => {
     // #swagger.tags = ['Admin']
     // #swagger.description = 'Delete user by user ID'
     deleteUser(req, res);
+});
+
+// Advanced Analytics Routes
+adminRouter.get('/analytics/user-growth', adminVerifyToken, (req, res) => {
+    // #swagger.tags = ['Admin']
+    // #swagger.description = 'Get monthly user growth analytics'
+    getUserGrowthReport(req, res);
+});
+
+adminRouter.get('/analytics/venue-growth', adminVerifyToken, (req, res) => {
+    // #swagger.tags = ['Admin']
+    // #swagger.description = 'Get monthly venue growth analytics'
+    getVenueGrowthReport(req, res);
+});
+
+adminRouter.get('/analytics/booking-trend', adminVerifyToken, (req, res) => {
+    // #swagger.tags = ['Admin']
+    // #swagger.description = 'Get daily booking trend analytics'
+    getBookingTrendReport(req, res);
+});
+
+adminRouter.get('/analytics/monthly-revenue', adminVerifyToken, (req, res) => {
+    // #swagger.tags = ['Admin']
+    // #swagger.description = 'Get monthly revenue analytics'
+    getMonthlyRevenueReport(req, res);
+});
+
+adminRouter.get('/analytics/revenue-by-venue', adminVerifyToken, (req, res) => {
+    // #swagger.tags = ['Admin']
+    // #swagger.description = 'Get revenue breakdown by venue'
+    getRevenueByVenue(req, res);
+});
+
+adminRouter.get('/analytics/revenue-by-sport', adminVerifyToken, (req, res) => {
+    // #swagger.tags = ['Admin']
+    // #swagger.description = 'Get revenue breakdown by sport'
+    getRevenueBySport(req, res);
+});
+
+adminRouter.get('/analytics/most-played-sports', adminVerifyToken, (req, res) => {
+    // #swagger.tags = ['Admin']
+    // #swagger.description = 'Get most played sports analytics'
+    getMostPlayedSports(req, res);
+});
+
+adminRouter.get('/analytics/most-booked-venues', adminVerifyToken, (req, res) => {
+    // #swagger.tags = ['Admin']
+    // #swagger.description = 'Get most booked venues analytics'
+    getMostBookedVenues(req, res);
+});
+
+adminRouter.get('/analytics/peak-booking-hours', adminVerifyToken, (req, res) => {
+    // #swagger.tags = ['Admin']
+    // #swagger.description = 'Get peak booking hours analytics'
+    getPeakBookingHours(req, res);
+});
+
+adminRouter.get('/analytics/top-users-by-bookings', adminVerifyToken, (req, res) => {
+    // #swagger.tags = ['Admin']
+    // #swagger.description = 'Get top users by booking count'
+    getTopUsersByBookings(req, res);
+});
+
+adminRouter.get('/analytics/most-liked-posts', adminVerifyToken, (req, res) => {
+    // #swagger.tags = ['Admin']
+    // #swagger.description = 'Get most liked posts analytics'
+    getMostLikedPosts(req, res);
+});
+
+adminRouter.get('/analytics/top-content-creators', adminVerifyToken, (req, res) => {
+    // #swagger.tags = ['Admin']
+    // #swagger.description = 'Get top content creators analytics'
+    getTopContentCreators(req, res);
 });
 
 export default adminRouter;

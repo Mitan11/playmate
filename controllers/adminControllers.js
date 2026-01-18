@@ -175,13 +175,19 @@ const getDashboardStats = async (req, res) => {
             "SELECT IFNULL(SUM(total_price),0) AS revenue FROM bookings"
         );
 
+        const [[venues]] = await connection.query("SELECT COUNT(*) AS totalVenues FROM venues");
+
+        const [[posts]] = await connection.query("SELECT COUNT(*) AS totalPosts FROM posts");
+
         await connection.commit();
         res.status(200).json(
             Response.success(200, "Dashboard stats fetched successfully", {
                 totalSports: sports.totalSports,
                 activeSessions: sessions.activeSessions,
                 totalUsers: users.totalUsers,
-                totalRevenue: revenue.revenue
+                totalRevenue: revenue.revenue,
+                totalVenue : venues.totalVenues,
+                totalPosts : posts.totalPosts
             })
         );
 
@@ -401,4 +407,261 @@ const deleteUser = async (req, res) => {
     }
 };
 
-export { adminLogin, getAllSports, addSport, updateSport, deleteSport, getDashboardStats, getSportMetrics, getRecentActivities, getBookingReport, getRevenueReport, getUserReport, getBookingMetrics, getAllUsers, deleteUser };
+// User Growth Analytics (Monthly)
+const getUserGrowthReport = async (req, res) => {
+    try {
+        const [rows] = await db.query(`
+            SELECT 
+                DATE_FORMAT(created_at, '%Y-%m') AS month,
+                COUNT(*) AS users_registered
+            FROM users
+            GROUP BY month
+            ORDER BY month
+        `);
+        res.json(Response.success(200, "User growth report fetched successfully", rows));
+    } catch (err) {
+        console.error('User growth report error:', err);
+        res.status(500).json(Response.error(500, "User growth report failed"));
+    }
+};
+
+// Venue Growth Analytics (Monthly)
+const getVenueGrowthReport = async (req, res) => {
+    try {
+        const [rows] = await db.query(`
+            SELECT 
+                DATE_FORMAT(created_at, '%Y-%m') AS month,
+                COUNT(*) AS venues_added
+            FROM venues
+            GROUP BY month
+            ORDER BY month
+        `);
+        res.json(Response.success(200, "Venue growth report fetched successfully", rows));
+    } catch (err) {
+        console.error('Venue growth report error:', err);
+        res.status(500).json(Response.error(500, "Venue growth report failed"));
+    }
+};
+
+// Booking Trend Analytics (Daily)
+const getBookingTrendReport = async (req, res) => {
+    try {
+        const [rows] = await db.query(`
+            SELECT 
+                DATE(start_datetime) AS date,
+                COUNT(*) AS total_bookings
+            FROM bookings
+            GROUP BY date
+            ORDER BY date
+        `);
+        res.json(Response.success(200, "Booking trend report fetched successfully", rows));
+    } catch (err) {
+        console.error('Booking trend report error:', err);
+        res.status(500).json(Response.error(500, "Booking trend report failed"));
+    }
+};
+
+// Monthly Revenue Analytics
+const getMonthlyRevenueReport = async (req, res) => {
+    try {
+        const [rows] = await db.query(`
+            SELECT 
+                DATE_FORMAT(start_datetime, '%Y-%m') AS month,
+                SUM(total_price) AS revenue
+            FROM bookings
+            GROUP BY month
+            ORDER BY month
+        `);
+        res.json(Response.success(200, "Monthly revenue report fetched successfully", rows));
+    } catch (err) {
+        console.error('Monthly revenue report error:', err);
+        res.status(500).json(Response.error(500, "Monthly revenue report failed"));
+    }
+};
+
+// Revenue by Venue Analytics
+const getRevenueByVenue = async (req, res) => {
+    try {
+        const [rows] = await db.query(`
+            SELECT 
+                v.venue_name,
+                SUM(b.total_price) AS revenue
+            FROM venues v
+            JOIN bookings b ON v.venue_id = b.venue_id
+            GROUP BY v.venue_id
+            ORDER BY revenue DESC
+        `);
+        res.json(Response.success(200, "Revenue by venue report fetched successfully", rows));
+    } catch (err) {
+        console.error('Revenue by venue report error:', err);
+        res.status(500).json(Response.error(500, "Revenue by venue report failed"));
+    }
+};
+
+// Revenue by Sport Analytics
+const getRevenueBySport = async (req, res) => {
+    try {
+        const [rows] = await db.query(`
+            SELECT 
+                s.sport_name,
+                SUM(b.total_price) AS revenue
+            FROM bookings b
+            JOIN venue_sports vs ON b.venue_sport_id = vs.venue_sport_id
+            JOIN sports s ON vs.sport_id = s.sport_id
+            GROUP BY s.sport_id
+            ORDER BY revenue DESC
+        `);
+        res.json(Response.success(200, "Revenue by sport report fetched successfully", rows));
+    } catch (err) {
+        console.error('Revenue by sport report error:', err);
+        res.status(500).json(Response.error(500, "Revenue by sport report failed"));
+    }
+};
+
+// Most Played Sports Analytics
+const getMostPlayedSports = async (req, res) => {
+    try {
+        const [rows] = await db.query(`
+            SELECT 
+                s.sport_name,
+                COUNT(g.game_id) AS total_games
+            FROM sports s
+            JOIN games g ON s.sport_id = g.sport_id
+            GROUP BY s.sport_id
+            ORDER BY total_games DESC
+        `);
+        res.json(Response.success(200, "Most played sports report fetched successfully", rows));
+    } catch (err) {
+        console.error('Most played sports report error:', err);
+        res.status(500).json(Response.error(500, "Most played sports report failed"));
+    }
+};
+
+// Most Booked Venues Analytics
+const getMostBookedVenues = async (req, res) => {
+    try {
+        const [rows] = await db.query(`
+            SELECT 
+                v.venue_name,
+                COUNT(b.booking_id) AS booking_count
+            FROM venues v
+            JOIN bookings b ON v.venue_id = b.venue_id
+            GROUP BY v.venue_id
+            ORDER BY booking_count DESC
+        `);
+        res.json(Response.success(200, "Most booked venues report fetched successfully", rows));
+    } catch (err) {
+        console.error('Most booked venues report error:', err);
+        res.status(500).json(Response.error(500, "Most booked venues report failed"));
+    }
+};
+
+// Peak Booking Hours Analytics
+const getPeakBookingHours = async (req, res) => {
+    try {
+        const [rows] = await db.query(`
+            SELECT 
+                HOUR(start_datetime) AS hour,
+                COUNT(*) AS bookings
+            FROM bookings
+            GROUP BY hour
+            ORDER BY bookings DESC
+        `);
+        res.json(Response.success(200, "Peak booking hours report fetched successfully", rows));
+    } catch (err) {
+        console.error('Peak booking hours report error:', err);
+        res.status(500).json(Response.error(500, "Peak booking hours report failed"));
+    }
+};
+
+// Top Users by Bookings Analytics
+const getTopUsersByBookings = async (req, res) => {
+    try {
+        const [rows] = await db.query(`
+            SELECT 
+                u.first_name,
+                u.last_name,
+                COUNT(b.booking_id) AS total_bookings
+            FROM users u
+            JOIN bookings b ON u.user_id = b.user_id
+            GROUP BY u.user_id
+            ORDER BY total_bookings DESC
+        `);
+        res.json(Response.success(200, "Top users by bookings report fetched successfully", rows));
+    } catch (err) {
+        console.error('Top users by bookings report error:', err);
+        res.status(500).json(Response.error(500, "Top users by bookings report failed"));
+    }
+};
+
+// Most Liked Posts Analytics
+const getMostLikedPosts = async (req, res) => {
+    try {
+        const [rows] = await db.query(`
+            SELECT 
+                p.post_id,
+                u.first_name,
+                u.last_name,
+                COUNT(pl.user_id) AS likes
+            FROM posts p
+            JOIN users u ON p.user_id = u.user_id
+            LEFT JOIN post_likes pl ON p.post_id = pl.post_id
+            GROUP BY p.post_id
+            ORDER BY likes DESC
+        `);
+        res.json(Response.success(200, "Most liked posts report fetched successfully", rows));
+    } catch (err) {
+        console.error('Most liked posts report error:', err);
+        res.status(500).json(Response.error(500, "Most liked posts report failed"));
+    }
+};
+
+// Top Content Creators Analytics
+const getTopContentCreators = async (req, res) => {
+    try {
+        const [rows] = await db.query(`
+            SELECT 
+                u.first_name,
+                u.last_name,
+                COUNT(p.post_id) AS posts_count
+            FROM users u
+            JOIN posts p ON u.user_id = p.user_id
+            GROUP BY u.user_id
+            ORDER BY posts_count DESC
+        `);
+        res.json(Response.success(200, "Top content creators report fetched successfully", rows));
+    } catch (err) {
+        console.error('Top content creators report error:', err);
+        res.status(500).json(Response.error(500, "Top content creators report failed"));
+    }
+};
+
+export { 
+    adminLogin, 
+    getAllSports, 
+    addSport, 
+    updateSport, 
+    deleteSport, 
+    getDashboardStats, 
+    getSportMetrics, 
+    getRecentActivities, 
+    getBookingReport, 
+    getRevenueReport, 
+    getUserReport, 
+    getBookingMetrics, 
+    getAllUsers, 
+    deleteUser,
+    // New Analytics Functions
+    getUserGrowthReport,
+    getVenueGrowthReport,
+    getBookingTrendReport,
+    getMonthlyRevenueReport,
+    getRevenueByVenue,
+    getRevenueBySport,
+    getMostPlayedSports,
+    getMostBookedVenues,
+    getPeakBookingHours,
+    getTopUsersByBookings,
+    getMostLikedPosts,
+    getTopContentCreators
+};
