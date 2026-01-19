@@ -15,7 +15,6 @@ class VenueSport {
                 venue_sport_id INT AUTO_INCREMENT PRIMARY KEY,
                 venue_id INT NOT NULL,
                 sport_id INT NOT NULL,
-                price_per_hour DECIMAL(10,2) NOT NULL CHECK (price_per_hour >= 0),
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 
                 CONSTRAINT fk_vs_venue
