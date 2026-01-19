@@ -86,7 +86,6 @@ class Venue {
     v.profile_image,
     v.created_at AS venue_created_at,
     s.sport_name,
-    vs.price_per_hour AS sport_price,
     vs.created_at AS sport_added_at
 FROM venues v
 LEFT JOIN venue_sports vs 
