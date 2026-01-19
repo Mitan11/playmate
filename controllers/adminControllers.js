@@ -6,9 +6,12 @@ import AuthHelpers from "../utils/AuthHelpers.js";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime.js";
 import User from "../models/User.js";
+import Venue from "../models/Venue.js";
+import Post from "../models/Post.js";
 dayjs.extend(relativeTime);
 
 Sport.createTable().catch(console.error);
+Post.createTable().catch(console.error);
 
 const adminLogin = async (req, res) => {
     try {
@@ -636,6 +639,81 @@ const getTopContentCreators = async (req, res) => {
     }
 };
 
+const getVenues = async (req, res) => {
+    const connection = await db.getConnection();
+    try {
+        connection.beginTransaction();
+        const venues = await Venue.getAllVenues(connection);
+        res.status(200).json(Response.success(200, "Venues fetched successfully", venues));
+    } catch (err) {
+        connection.release();
+        console.error('Error fetching venues:', err);
+        res.status(500).json(Response.error(500, "Failed to fetch venues"));
+    }finally{
+        connection.release();
+    }
+}
+
+const deleteVenue = async (req, res) => {
+    try {
+        const { venue_id } = req.params;
+        
+        const exist = await Venue.findById(venue_id);
+        if (!exist) {
+            return res.status(404).json(Response.error(404, "Venue not found"));
+        }
+        
+        const result = await Venue.deleteById(venue_id);
+
+        res.status(200).json(Response.success(200, "Venue deleted successfully"));
+    } catch (err) {
+        console.error('Error deleting venue:', err);
+        res.status(500).json(Response.error(500, "Failed to delete venue"));
+    }
+};
+
+const getAllPosts = async (req, res) => {
+    const connection = await db.getConnection();
+    try {
+        connection.beginTransaction();
+        const posts = await Post.getAllPosts(connection);
+        res.status(200).json(Response.success(200, "Posts fetched successfully", posts));
+    }catch(err){
+        connection.release();
+        console.error('Error fetching posts:', err);
+        res.status(500).json(Response.error(500, "Failed to fetch posts"));
+    }finally{
+        connection.release();
+    }   
+};
+
+const deletePost = async (req, res) => {
+    const connection = await db.getConnection();
+    try {
+        
+        connection.beginTransaction();
+        const { post_id } = req.params;
+        const exist = await Post.findById(post_id, connection);
+
+        if (!exist) {
+            connection.release();
+            return res.status(404).json(Response.error(404, "Post not found"));
+        }
+
+        const result = await Post.deleteById(post_id, connection);
+
+        await connection.commit();
+        res.status(200).json(Response.success(200, "Post deleted successfully"));
+
+    } catch (err) {
+        connection.release();
+        console.error('Error deleting post:', err);
+        res.status(500).json(Response.error(500, "Failed to delete post"));
+    }finally{
+        connection.release();
+    }
+}
+
 export { 
     adminLogin, 
     getAllSports, 
@@ -663,5 +741,9 @@ export {
     getPeakBookingHours,
     getTopUsersByBookings,
     getMostLikedPosts,
-    getTopContentCreators
+    getTopContentCreators,
+    getVenues,
+    deleteVenue,
+    getAllPosts,
+    deletePost
 };

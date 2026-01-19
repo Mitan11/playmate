@@ -1,6 +1,6 @@
 import express from "express";
 import { adminVerifyToken } from "../middleware/authUser.js";
-import { addSport, adminLogin, deleteSport, deleteUser, getAllSports, getAllUsers, getBookingMetrics, getBookingReport, getDashboardStats, getRecentActivities, getRevenueReport, getSportMetrics, getUserReport, updateSport, getUserGrowthReport, getVenueGrowthReport, getBookingTrendReport, getMonthlyRevenueReport, getRevenueByVenue, getRevenueBySport, getMostPlayedSports, getMostBookedVenues, getPeakBookingHours, getTopUsersByBookings, getMostLikedPosts, getTopContentCreators } from "../controllers/adminControllers.js";
+import { addSport, adminLogin, deleteSport, deleteUser, getAllSports, getAllUsers, getBookingMetrics, getBookingReport, getDashboardStats, getRecentActivities, getRevenueReport, getSportMetrics, getUserReport, updateSport, getUserGrowthReport, getVenueGrowthReport, getBookingTrendReport, getMonthlyRevenueReport, getRevenueByVenue, getRevenueBySport, getMostPlayedSports, getMostBookedVenues, getPeakBookingHours, getTopUsersByBookings, getMostLikedPosts, getTopContentCreators, deleteVenue, getVenues, getAllPosts, deletePost } from "../controllers/adminControllers.js";
 
 const adminRouter = express.Router();
 
@@ -159,6 +159,30 @@ adminRouter.get('/analytics/top-content-creators', adminVerifyToken, (req, res) 
     // #swagger.tags = ['Admin']
     // #swagger.description = 'Get top content creators analytics'
     getTopContentCreators(req, res);
+});
+
+adminRouter.get('/getVenues' , (req, res) => {
+    // #swagger.tags = ['Admin']
+    // #swagger.description = 'Get all venues'
+    getVenues(req, res);
+});
+
+adminRouter.delete('/deleteVenue/:venue_id', adminVerifyToken, (req, res) => {
+    // #swagger.tags = ['Admin']
+    // #swagger.description = 'Delete venue by venue ID'
+    deleteVenue(req, res);
+});
+
+adminRouter.get('/getAllPosts', adminVerifyToken, (req, res) => {
+    // #swagger.tags = ['Admin']
+    // #swagger.description = 'Get all posts'
+    getAllPosts(req, res);
+});
+
+adminRouter.delete('/deletePost/:post_id', adminVerifyToken, (req, res) => {
+    // #swagger.tags = ['Admin']
+    // #swagger.description = 'Delete post by post ID'
+    deletePost(req, res);
 });
 
 export default adminRouter;
