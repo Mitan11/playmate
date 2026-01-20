@@ -1,6 +1,7 @@
 import express from 'express';
-import { registerVenue, venueLogin, venueProfile } from '../controllers/venueController.js';
+import { registerVenue, updateVenueProfile, venueLogin, venueProfile } from '../controllers/venueController.js';
 import { venueVerifyToken } from '../middleware/authUser.js';
+import upload from '../middleware/multer.js';
 
 const venueRouter = express.Router();
 
@@ -21,6 +22,12 @@ venueRouter.get('/profile/:venueId', venueVerifyToken, (req, res) => {
     // #swagger.tags = ['Venue']
     // #swagger.description = 'Get venue profile by ID'
     venueProfile(req, res);
+});
+
+venueRouter.put('/profile/:venueId', venueVerifyToken, upload.single('profile_image'), (req, res) => {
+    // #swagger.tags = ['Venue']
+    // #swagger.description = 'Update venue profile by ID'
+    updateVenueProfile(req, res);
 });
 
 export default venueRouter;
