@@ -4,6 +4,7 @@ import db from "../config/db.js";
 import AuthHelpers from "../utils/AuthHelpers.js";
 import { playmateWelcomeTemplate } from "../utils/emailTemplates.js";
 import { sendWelcomeEmail } from "../utils/Mail.js";
+import { v2 as cloudinary } from 'cloudinary'
 
 Venue.createTable().catch(console.error);
 
@@ -141,9 +142,13 @@ const venueProfile = async (req, res) => {
 
         const venue = await Venue.findById(venueId, connection);
 
+        delete venue.password;
+
+        await connection.commit();
+
         res.status(200).json(Response.success(200, "Venue Profile retrieved successfully", { venue }));
 
-    } catch {
+    } catch (error) {
         await connection.rollback();
         console.error("Error fetching venue profile:", error);
         res.status(500).json(Response.error(500, "Internal Server Error"));
@@ -152,4 +157,46 @@ const venueProfile = async (req, res) => {
     }
 }
 
-export { registerVenue, venueLogin, venueProfile };
+const updateVenueProfile = async (req, res) => {
+    const connection = await db.getConnection();
+    try {
+        connection.beginTransaction();
+        const { venueId } = req.params;
+        const updates = req.body;
+        
+        const exist = await Venue.findById(venueId, connection);
+        if (!exist) {
+            await connection.rollback();
+            return res.status(404).json(Response.error(404, "Venue not found"));
+        }
+
+        if (req.file) {
+            try {
+                const imageUpload = await cloudinary.uploader.upload(req.file.path, { resource_type: "image" });
+                updates.profile_image = imageUpload.secure_url;
+            } catch (uploadError) {
+                console.error('Cloudinary upload error:', uploadError);
+            }
+        }
+
+        const updateSuccess = await Venue.updateProfile(venueId, updates, connection);
+        if (!updateSuccess) {
+            await connection.rollback();
+            return res.status(400).json(Response.error(400, "No valid fields to update"));
+        }
+        const updatedVenue = await Venue.findById(venueId, connection);
+
+        delete updatedVenue.password;
+        await connection.commit();
+        res.status(200).json(Response.success(200, "Venue profile updated successfully", { venue: updatedVenue }));
+
+    } catch (error) {
+        await connection.rollback();
+        console.error("Error updating venue profile:", error);
+        res.status(500).json(Response.error(500, "Internal Server Error"));
+    } finally {
+        connection.release();
+    }
+}
+
+export { registerVenue, venueLogin, venueProfile, updateVenueProfile };

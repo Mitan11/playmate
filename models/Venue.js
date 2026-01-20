@@ -60,6 +60,11 @@ class Venue {
     }
 
     static async updateProfile(id, updates, conn = db) {
+        // Check if updates object is valid
+        if (!updates || typeof updates !== 'object') {
+            return false;
+        }
+        
         const fields = [];
         const params = [];
         if (updates.first_name !== undefined) { fields.push('first_name = ?'); params.push(updates.first_name); }
