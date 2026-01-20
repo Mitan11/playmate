@@ -163,7 +163,7 @@ const updateVenueProfile = async (req, res) => {
         connection.beginTransaction();
         const { venueId } = req.params;
         const updates = req.body;
-        
+
         const exist = await Venue.findById(venueId, connection);
         if (!exist) {
             await connection.rollback();
@@ -199,4 +199,464 @@ const updateVenueProfile = async (req, res) => {
     }
 }
 
-export { registerVenue, venueLogin, venueProfile, updateVenueProfile };
+const getVenueDashboardStats = async (req, res) => {
+    const connection = await db.getConnection();
+    try {
+        connection.beginTransaction();
+        const { venueId } = req.params;
+
+        const [[sports]] = await connection.query(` 
+            SELECT COUNT(*) AS total_bookings FROM bookings
+            WHERE venue_id = ${venueId}`);
+        const [[revenue]] = await connection.query(`
+            SELECT COALESCE(SUM(total_price), 0) AS total_revenue FROM bookings
+            WHERE venue_id = ${venueId}`);
+
+        const [[todaysRevenue]] = await connection.query(`
+            SELECT COALESCE(SUM(total_price), 0) AS today_revenue FROM bookings
+            WHERE venue_id = ${venueId} 
+            AND DATE(start_datetime) = CURDATE()`);
+
+        const [[totalSports]] = await connection.query(`
+                SELECT COUNT(*) AS total_sports FROM venue_sports
+                WHERE venue_id = ${venueId}`);
+
+        connection.commit();
+        res.status(200).json(Response.success(200, "Venue dashboard stats fetched successfully",{
+            total_bookings: sports.total_bookings,
+            total_revenue: revenue.total_revenue,
+            today_revenue: todaysRevenue.today_revenue,
+            total_sports: totalSports.total_sports
+        }));
+    } catch (error) {
+        connection.rollback();
+        console.error("Error fetching venue dashboard stats:", error);
+        res.status(500).json(Response.error(500, "Internal Server Error"));
+    } finally {
+        connection.release();
+    }
+}
+
+// Analytics Functions
+const getDailyBookingTrend = async (req, res) => {
+    const connection = await db.getConnection();
+    try {
+        await connection.beginTransaction();
+        const { venueId } = req.params;
+
+        const [rows] = await connection.query(`
+            SELECT 
+                DATE(start_datetime) AS booking_date,
+                COUNT(*) AS bookings
+            FROM bookings
+            WHERE venue_id = ?
+            GROUP BY booking_date
+            ORDER BY booking_date
+        `, [venueId]);
+
+        await connection.commit();
+        res.status(200).json(Response.success(200, "Daily booking trend fetched successfully", rows));
+    } catch (error) {
+        await connection.rollback();
+        console.error("Error fetching daily booking trend:", error);
+        res.status(500).json(Response.error(500, "Internal Server Error"));
+    } finally {
+        connection.release();
+    }
+}
+
+const getMonthlyRevenueTrend = async (req, res) => {
+    const connection = await db.getConnection();
+    try {
+        await connection.beginTransaction();
+        const { venueId } = req.params;
+
+        const [rows] = await connection.query(`
+            SELECT 
+                DATE_FORMAT(start_datetime, '%Y-%m') AS month,
+                SUM(total_price) AS revenue
+            FROM bookings
+            WHERE venue_id = ?
+            GROUP BY month
+            ORDER BY month
+        `, [venueId]);
+
+        await connection.commit();
+        res.status(200).json(Response.success(200, "Monthly revenue trend fetched successfully", rows));
+    } catch (error) {
+        await connection.rollback();
+        console.error("Error fetching monthly revenue trend:", error);
+        res.status(500).json(Response.error(500, "Internal Server Error"));
+    } finally {
+        connection.release();
+    }
+}
+
+const getRevenueBySport = async (req, res) => {
+    const connection = await db.getConnection();
+    try {
+        await connection.beginTransaction();
+        const { venueId } = req.params;
+
+        const [rows] = await connection.query(`
+            SELECT 
+                s.sport_name,
+                SUM(b.total_price) AS revenue
+            FROM bookings b
+            JOIN venue_sports vs ON b.venue_sport_id = vs.venue_sport_id
+            JOIN sports s ON vs.sport_id = s.sport_id
+            WHERE b.venue_id = ?
+            GROUP BY s.sport_id
+            ORDER BY revenue DESC
+        `, [venueId]);
+
+        await connection.commit();
+        res.status(200).json(Response.success(200, "Revenue by sport fetched successfully", rows));
+    } catch (error) {
+        await connection.rollback();
+        console.error("Error fetching revenue by sport:", error);
+        res.status(500).json(Response.error(500, "Internal Server Error"));
+    } finally {
+        connection.release();
+    }
+}
+
+const getRevenueBySlot = async (req, res) => {
+    const connection = await db.getConnection();
+    try {
+        await connection.beginTransaction();
+        const { venueId } = req.params;
+
+        const [rows] = await connection.query(`
+            SELECT 
+                sl.start_time,
+                sl.end_time,
+                SUM(b.total_price) AS revenue
+            FROM bookings b
+            JOIN slots sl ON b.slot_id = sl.slot_id
+            WHERE b.venue_id = ?
+            GROUP BY sl.slot_id
+            ORDER BY revenue DESC
+        `, [venueId]);
+
+        await connection.commit();
+        res.status(200).json(Response.success(200, "Revenue by slot fetched successfully", rows));
+    } catch (error) {
+        await connection.rollback();
+        console.error("Error fetching revenue by slot:", error);
+        res.status(500).json(Response.error(500, "Internal Server Error"));
+    } finally {
+        connection.release();
+    }
+}
+
+const getMostBookedSlots = async (req, res) => {
+    const connection = await db.getConnection();
+    try {
+        await connection.beginTransaction();
+        const { venueId } = req.params;
+
+        const [rows] = await connection.query(`
+            SELECT 
+                sl.start_time,
+                sl.end_time,
+                COUNT(b.booking_id) AS total_bookings
+            FROM bookings b
+            JOIN slots sl ON b.slot_id = sl.slot_id
+            WHERE b.venue_id = ?
+            GROUP BY sl.slot_id
+            ORDER BY total_bookings DESC
+        `, [venueId]);
+
+        await connection.commit();
+        res.status(200).json(Response.success(200, "Most booked slots fetched successfully", rows));
+    } catch (error) {
+        await connection.rollback();
+        console.error("Error fetching most booked slots:", error);
+        res.status(500).json(Response.error(500, "Internal Server Error"));
+    } finally {
+        connection.release();
+    }
+}
+
+const getPeakBookingHours = async (req, res) => {
+    const connection = await db.getConnection();
+    try {
+        await connection.beginTransaction();
+        const { venueId } = req.params;
+
+        const [rows] = await connection.query(`
+            SELECT 
+                HOUR(start_datetime) AS hour,
+                COUNT(*) AS bookings
+            FROM bookings
+            WHERE venue_id = ?
+            GROUP BY hour
+            ORDER BY bookings DESC
+        `, [venueId]);
+
+        await connection.commit();
+        res.status(200).json(Response.success(200, "Peak booking hours fetched successfully", rows));
+    } catch (error) {
+        await connection.rollback();
+        console.error("Error fetching peak booking hours:", error);
+        res.status(500).json(Response.error(500, "Internal Server Error"));
+    } finally {
+        connection.release();
+    }
+}
+
+const getSlotUsageFrequency = async (req, res) => {
+    const connection = await db.getConnection();
+    try {
+        await connection.beginTransaction();
+        const { venueId } = req.params;
+
+        const [rows] = await connection.query(`
+            SELECT 
+                s.start_time,
+                s.end_time,
+                COUNT(b.booking_id) AS times_booked
+            FROM slots s
+            LEFT JOIN bookings b ON s.slot_id = b.slot_id
+            WHERE s.venue_sport_id IN (
+                SELECT venue_sport_id 
+                FROM venue_sports 
+                WHERE venue_id = ?
+            )
+            GROUP BY s.slot_id
+            ORDER BY times_booked DESC
+        `, [venueId]);
+
+        await connection.commit();
+        res.status(200).json(Response.success(200, "Slot usage frequency fetched successfully", rows));
+    } catch (error) {
+        await connection.rollback();
+        console.error("Error fetching slot usage frequency:", error);
+        res.status(500).json(Response.error(500, "Internal Server Error"));
+    } finally {
+        connection.release();
+    }
+}
+
+const getUnusedSlots = async (req, res) => {
+    const connection = await db.getConnection();
+    try {
+        await connection.beginTransaction();
+        const { venueId } = req.params;
+
+        const [rows] = await connection.query(`
+            SELECT 
+                s.start_time,
+                s.end_time
+            FROM slots s
+            LEFT JOIN bookings b ON s.slot_id = b.slot_id
+            WHERE s.venue_sport_id IN (
+                SELECT venue_sport_id 
+                FROM venue_sports 
+                WHERE venue_id = ?
+            )
+            GROUP BY s.slot_id
+            HAVING COUNT(b.booking_id) = 0
+        `, [venueId]);
+
+        await connection.commit();
+        res.status(200).json(Response.success(200, "Unused slots fetched successfully", rows));
+    } catch (error) {
+        await connection.rollback();
+        console.error("Error fetching unused slots:", error);
+        res.status(500).json(Response.error(500, "Internal Server Error"));
+    } finally {
+        connection.release();
+    }
+}
+
+const getUniqueCustomers = async (req, res) => {
+    const connection = await db.getConnection();
+    try {
+        await connection.beginTransaction();
+        const { venueId } = req.params;
+
+        const [[result]] = await connection.query(`
+            SELECT COUNT(DISTINCT user_id) AS unique_customers
+            FROM bookings
+            WHERE venue_id = ?
+        `, [venueId]);
+
+        await connection.commit();
+        res.status(200).json(Response.success(200, "Unique customers count fetched successfully", result));
+    } catch (error) {
+        await connection.rollback();
+        console.error("Error fetching unique customers:", error);
+        res.status(500).json(Response.error(500, "Internal Server Error"));
+    } finally {
+        connection.release();
+    }
+}
+
+const getRepeatCustomers = async (req, res) => {
+    const connection = await db.getConnection();
+    try {
+        await connection.beginTransaction();
+        const { venueId } = req.params;
+
+        const [[result]] = await connection.query(`
+            SELECT COUNT(*) AS repeat_customers
+            FROM (
+                SELECT user_id
+                FROM bookings
+                WHERE venue_id = ?
+                GROUP BY user_id
+                HAVING COUNT(*) > 1
+            ) t
+        `, [venueId]);
+
+        await connection.commit();
+        res.status(200).json(Response.success(200, "Repeat customers count fetched successfully", result));
+    } catch (error) {
+        await connection.rollback();
+        console.error("Error fetching repeat customers:", error);
+        res.status(500).json(Response.error(500, "Internal Server Error"));
+    } finally {
+        connection.release();
+    }
+}
+
+const getTopCustomers = async (req, res) => {
+    const connection = await db.getConnection();
+    try {
+        await connection.beginTransaction();
+        const { venueId } = req.params;
+
+        const [rows] = await connection.query(`
+            SELECT 
+                u.first_name,
+                u.last_name,
+                COUNT(b.booking_id) AS bookings_count
+            FROM users u
+            JOIN bookings b ON u.user_id = b.user_id
+            WHERE b.venue_id = ?
+            GROUP BY u.user_id
+            ORDER BY bookings_count DESC
+        `, [venueId]);
+
+        await connection.commit();
+        res.status(200).json(Response.success(200, "Top customers fetched successfully", rows));
+    } catch (error) {
+        await connection.rollback();
+        console.error("Error fetching top customers:", error);
+        res.status(500).json(Response.error(500, "Internal Server Error"));
+    } finally {
+        connection.release();
+    }
+}
+
+const getTotalGamesHosted = async (req, res) => {
+    const connection = await db.getConnection();
+    try {
+        await connection.beginTransaction();
+        const { venueId } = req.params;
+
+        const [[result]] = await connection.query(`
+            SELECT COUNT(*) AS total_games
+            FROM games
+            WHERE venue_id = ?
+        `, [venueId]);
+
+        await connection.commit();
+        res.status(200).json(Response.success(200, "Total games hosted fetched successfully", result));
+    } catch (error) {
+        await connection.rollback();
+        console.error("Error fetching total games hosted:", error);
+        res.status(500).json(Response.error(500, "Internal Server Error"));
+    } finally {
+        connection.release();
+    }
+}
+
+const getGamesBySport = async (req, res) => {
+    const connection = await db.getConnection();
+    try {
+        await connection.beginTransaction();
+        const { venueId } = req.params;
+
+        const [rows] = await connection.query(`
+            SELECT 
+                s.sport_name,
+                COUNT(g.game_id) AS games_count
+            FROM games g
+            JOIN sports s ON g.sport_id = s.sport_id
+            WHERE g.venue_id = ?
+            GROUP BY s.sport_id
+        `, [venueId]);
+
+        await connection.commit();
+        res.status(200).json(Response.success(200, "Games by sport fetched successfully", rows));
+    } catch (error) {
+        await connection.rollback();
+        console.error("Error fetching games by sport:", error);
+        res.status(500).json(Response.error(500, "Internal Server Error"));
+    } finally {
+        connection.release();
+    }
+}
+
+const getRecentBookings = async (req, res) => {
+    const connection = await db.getConnection();
+    try {
+        await connection.beginTransaction();
+        const { venueId } = req.params;
+        const limit = req.query.limit || 20;
+
+        const [rows] = await connection.query(`
+            SELECT 
+                b.booking_id,
+                u.first_name,
+                u.last_name,
+                sl.start_time,
+                sl.end_time,
+                b.start_datetime,
+                b.end_datetime,
+                b.total_price
+            FROM bookings b
+            JOIN users u ON b.user_id = u.user_id
+            LEFT JOIN slots sl ON b.slot_id = sl.slot_id
+            WHERE b.venue_id = ?
+            ORDER BY b.created_at DESC
+            LIMIT ?
+        `, [venueId, parseInt(limit)]);
+
+        await connection.commit();
+        res.status(200).json(Response.success(200, "Recent bookings fetched successfully", rows));
+    } catch (error) {
+        await connection.rollback();
+        console.error("Error fetching recent bookings:", error);
+        res.status(500).json(Response.error(500, "Internal Server Error"));
+    } finally {
+        connection.release();
+    }
+}
+
+
+
+export { 
+    registerVenue, 
+    venueLogin, 
+    venueProfile, 
+    updateVenueProfile, 
+    getVenueDashboardStats,
+    getDailyBookingTrend,
+    getMonthlyRevenueTrend,
+    getRevenueBySport,
+    getRevenueBySlot,
+    getMostBookedSlots,
+    getPeakBookingHours,
+    getSlotUsageFrequency,
+    getUnusedSlots,
+    getUniqueCustomers,
+    getRepeatCustomers,
+    getTopCustomers,
+    getTotalGamesHosted,
+    getGamesBySport,
+    getRecentBookings
+};
