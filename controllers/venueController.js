@@ -5,6 +5,7 @@ import AuthHelpers from "../utils/AuthHelpers.js";
 import { playmateWelcomeTemplate } from "../utils/emailTemplates.js";
 import { sendWelcomeEmail } from "../utils/Mail.js";
 import { v2 as cloudinary } from 'cloudinary'
+import VenueSport from "../models/VenueSport.js";
 
 Venue.createTable().catch(console.error);
 
@@ -222,7 +223,7 @@ const getVenueDashboardStats = async (req, res) => {
                 WHERE venue_id = ${venueId}`);
 
         connection.commit();
-        res.status(200).json(Response.success(200, "Venue dashboard stats fetched successfully",{
+        res.status(200).json(Response.success(200, "Venue dashboard stats fetched successfully", {
             total_bookings: sports.total_bookings,
             total_revenue: revenue.total_revenue,
             today_revenue: todaysRevenue.today_revenue,
@@ -606,7 +607,7 @@ const getRecentBookings = async (req, res) => {
     try {
         await connection.beginTransaction();
         const { venueId } = req.params;
-        const limit = req.query.limit || 20;
+        const limit = req.query.limit || 5;
 
         const [rows] = await connection.query(`
             SELECT 
@@ -637,13 +638,121 @@ const getRecentBookings = async (req, res) => {
     }
 }
 
+const venueSports = async (req, res) => {
+    const connection = await db.getConnection();
+    try {
+        await connection.beginTransaction();
+        const { venueId } = req.params;
+        const sports = await VenueSport.getVenueSports(venueId, connection);
+        await connection.commit();
+        res.status(200).json(Response.success(200, "Venue sports fetched successfully", sports));
+    } catch (error) {
+        await connection.rollback();
+        console.error("Error fetching venue sports:", error);
+        res.status(500).json(Response.error(500, "Internal Server Error"));
+    } finally {
+        connection.release();
+    }
+}
 
+const CreateVenueSport = async (req, res) => {
+    const connection = await db.getConnection();
+    try {
+        await connection.beginTransaction();
+        const { venue_id, sport_id } = req.body;
 
-export { 
-    registerVenue, 
-    venueLogin, 
-    venueProfile, 
-    updateVenueProfile, 
+        if (!venue_id || !sport_id) {
+            return res.status(400).json(Response.error(400, "venue_id and sport_id are required"));
+        }
+
+        const exist = await VenueSport.listByVenue(venue_id, connection);
+        if (exist.some(vs => vs.sport_id === sport_id)) {
+            await connection.rollback();
+            return res.status(409).json(Response.error(409, "Sport already added for this venue"));
+        }
+
+        const venueSport = await VenueSport.save({ venue_id, sport_id }, connection);
+
+        await connection.commit();
+        res.status(201).json(Response.success(201, "Venue sport created successfully", venueSport));
+    } catch (error) {
+        await connection.rollback();
+        console.error("Error creating venue sport:", error);
+        res.status(500).json(Response.error(500, "Internal Server Error"));
+    } finally {
+        connection.release();
+    }
+}
+
+const deleteVenueSport = async (req, res) => {
+    const connection = await db.getConnection();
+    try {
+        await connection.beginTransaction();
+        const { venueSportId } = req.params;
+        const exist = await VenueSport.findById(venueSportId, connection);
+        if (!exist) {
+            await connection.rollback();
+            return res.status(404).json(Response.error(404, "Venue sport not found"));
+        }
+        await VenueSport.deleteById(venueSportId, connection);
+        await connection.commit();
+        res.status(200).json(Response.success(200, "Venue sport deleted successfully"));
+    } catch (error) {
+        await connection.rollback();
+        console.error("Error deleting venue sport:", error);
+        res.status(500).json(Response.error(500, "Internal Server Error"));
+    } finally {
+        connection.release();
+    }
+}
+
+const updateVenueSport = async (req, res) => {
+    const connection = await db.getConnection();
+    try {
+        await connection.beginTransaction();
+        const { venueSportId } = req.params;
+        const { sport_id } = req.body;
+        console.log("Updating venue sport:", venueSportId, sport_id);
+
+        // Get current venue_sport to know which venue we're updating
+        const currentVenueSport = await VenueSport.findById(venueSportId, connection);
+        if (!currentVenueSport) {
+            await connection.rollback();
+            return res.status(404).json(Response.error(404, "Venue sport not found"));
+        }
+
+        // Check if this sport already exists for this venue (excluding current record)
+        const exist = await VenueSport.existsForVenue(currentVenueSport.venue_id, sport_id, venueSportId, connection);
+        console.log("Existing sport check:", exist);
+
+        if (exist) {
+            await connection.rollback();
+            return res.status(409).json(Response.error(409, "Sport already added for this venue"));
+        }
+
+        const updateSuccess = await VenueSport.updateById(venueSportId, sport_id, connection);
+
+        if (!updateSuccess) {
+            await connection.rollback();
+            return res.status(400).json(Response.error(400, "No valid fields to update"));
+        }
+
+        await connection.commit();
+        res.status(200).json(Response.success(200, "Venue sport updated successfully"));
+    } catch (error) {
+        await connection.rollback();
+        console.error("Error updating venue sport:", error);
+        res.status(500).json(Response.error(500, "Internal Server Error"));
+    } finally {
+        connection.release();
+    }
+}
+
+export {
+    registerVenue,
+    venueLogin,
+    venueProfile,
+    updateVenueProfile,
     getVenueDashboardStats,
     getDailyBookingTrend,
     getMonthlyRevenueTrend,
@@ -658,5 +767,9 @@ export {
     getTopCustomers,
     getTotalGamesHosted,
     getGamesBySport,
-    getRecentBookings
+    getRecentBookings,
+    venueSports,
+    CreateVenueSport,
+    deleteVenueSport,
+    updateVenueSport
 };

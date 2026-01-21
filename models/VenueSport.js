@@ -5,7 +5,6 @@ class VenueSport {
         this.venue_sport_id = data.venue_sport_id;
         this.venue_id = data.venue_id;
         this.sport_id = data.sport_id;
-        this.price_per_hour = data.price_per_hour;
         this.created_at = data.created_at;
     }
 
@@ -44,10 +43,10 @@ class VenueSport {
     }
 
     static async save(data, conn = db) {
-        const { venue_id, sport_id, price_per_hour } = data;
+        const { venue_id, sport_id } = data;
         const [result] = await conn.execute(
-            'INSERT INTO venue_sports (venue_id, sport_id, price_per_hour) VALUES (?, ?, ?)',
-            [venue_id, sport_id, price_per_hour]
+            'INSERT INTO venue_sports (venue_id, sport_id) VALUES (?, ?)',
+            [venue_id, sport_id]
         );
         return await VenueSport.findById(result.insertId, conn);
     }
@@ -57,10 +56,61 @@ class VenueSport {
         return rows.length ? new VenueSport(rows[0]) : null;
     }
 
+    static async findBySportId(id, venueSportId, conn = db) {
+        const [rows] = await conn.execute('SELECT * FROM venue_sports WHERE sport_id = ? AND venue_sport_id != ?', [id, venueSportId]);
+        return rows.length ? new VenueSport(rows[0]) : null;
+    }
+
+    static async existsForVenue(venueId, sportId, excludeVenueSportId, conn = db) {
+        const [rows] = await conn.execute(
+            'SELECT 1 FROM venue_sports WHERE venue_id = ? AND sport_id = ? AND venue_sport_id != ?',
+            [venueId, sportId, excludeVenueSportId]
+        );
+        return rows.length > 0;
+    }
+
     static async listByVenue(venueId, conn = db) {
         const [rows] = await conn.execute('SELECT * FROM venue_sports WHERE venue_id = ?', [venueId]);
         return rows.map(r => new VenueSport(r));
     }
+
+    static async getVenueSports(venueId, conn = db) {
+        const [rows] = await conn.execute(
+            `SELECT 
+	            vs.venue_sport_id,
+                s.sport_id,
+                s.sport_name,
+                vs.created_at
+                FROM playmate2.venue_sports vs
+                JOIN playmate2.sports s ON vs.sport_id = s.sport_id
+                WHERE vs.venue_id = ?`, [venueId]);
+        return rows;
+    }
+
+    static async listByVenue(venueId, conn = db) {
+        const [rows] = await conn.execute('SELECT * FROM venue_sports WHERE venue_id = ?', [venueId]);
+        return rows
+    }
+
+    static async deleteById(id, conn = db) {
+        const [result] = await conn.execute('DELETE FROM venue_sports WHERE venue_sport_id = ?', [id]);
+        return result.affectedRows > 0;
+    }
+
+    static async updateById(id, sport_id, conn = db) {
+        const query = `UPDATE venue_sports SET sport_id = ? WHERE venue_sport_id = ?`;
+        await conn.execute(query, [sport_id, id]);
+        return await VenueSport.findById(id, conn);
+    }
+
+    static async exists(venueId, sportId, conn = db) {
+        const [rows] = await conn.execute(
+            'SELECT 1 FROM venue_sports WHERE venue_id = ? AND sport_id = ?',
+            [venueId, sportId]
+        );
+        return rows.length > 0;
+    }
+
 }
 
 export default VenueSport;
