@@ -22,7 +22,8 @@ import {
     venueSports,
     CreateVenueSport,
     deleteVenueSport,
-    updateVenueSport
+    updateVenueSport,
+    venueBookings
 } from '../controllers/venueController.js';
 import { venueVerifyToken } from '../middleware/authUser.js';
 import upload from '../middleware/multer.js';
@@ -146,34 +147,40 @@ venueRouter.get('/analytics/recent-bookings/:venueId', venueVerifyToken, (req, r
     getRecentBookings(req, res);
 });
 
-venueRouter.get('/sports/:venueId', (req, res) => {
+venueRouter.get('/sports/:venueId', venueVerifyToken, (req, res) => {
     // #swagger.tags = ['Venue']
     // #swagger.description = 'Get sports offered by the venue'
     venueSports(req, res);
 });
 
-venueRouter.post('/sports', (req, res) => {
+venueRouter.post('/sports', venueVerifyToken, (req, res) => {
     // #swagger.tags = ['Venue']
     // #swagger.description = 'Add a sport to the venue'
     CreateVenueSport(req, res);
 });
 
-venueRouter.get('/allSports', (req, res) => {
+venueRouter.get('/allSports', venueVerifyToken, (req, res) => {
     // #swagger.tags = ['Venue']
     // #swagger.description = 'Get all available sports'
     getAllSports(req, res);
 });
 
-venueRouter.delete('/sports/:venueSportId', (req, res) => {
+venueRouter.delete('/sports/:venueSportId', venueVerifyToken, (req, res) => {
     // #swagger.tags = ['Venue']
     // #swagger.description = 'Delete a sport from the venue'
     deleteVenueSport(req, res);
 });
 
-venueRouter.put('/sports/:venueSportId', (req, res) => {
+venueRouter.put('/sports/:venueSportId', venueVerifyToken, (req, res) => {
     // #swagger.tags = ['Venue']
     // #swagger.description = 'Update a sport for the venue'
     updateVenueSport(req, res);
+});
+
+venueRouter.get('/bookings/:venueId', (req, res) => {
+    // #swagger.tags = ['Venue']
+    // #swagger.description = 'Get bookings for the venue'
+    venueBookings(req, res);
 });
 
 export default venueRouter;

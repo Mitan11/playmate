@@ -6,8 +6,10 @@ import { playmateWelcomeTemplate } from "../utils/emailTemplates.js";
 import { sendWelcomeEmail } from "../utils/Mail.js";
 import { v2 as cloudinary } from 'cloudinary'
 import VenueSport from "../models/VenueSport.js";
+import Booking from "../models/Booking.js";
 
 Venue.createTable().catch(console.error);
+Booking.createTable().catch(console.error);
 
 const registerVenue = async (req, res) => {
     // Start transaction
@@ -748,6 +750,23 @@ const updateVenueSport = async (req, res) => {
     }
 }
 
+const venueBookings = async (req, res) => {
+    const connection = await db.getConnection();
+    try {
+        await connection.beginTransaction();
+        const { venueId } = req.params;
+        const bookings = await Booking.listByVenue(venueId, connection);
+        await connection.commit();
+        res.status(200).json(Response.success(200, "Venue bookings fetched successfully", bookings));
+    } catch (error) {
+        await connection.rollback();
+        console.error("Error fetching venue bookings:", error);
+        res.status(500).json(Response.error(500, "Internal Server Error"));
+    } finally {
+        connection.release();
+    }
+}
+
 export {
     registerVenue,
     venueLogin,
@@ -771,5 +790,6 @@ export {
     venueSports,
     CreateVenueSport,
     deleteVenueSport,
-    updateVenueSport
+    updateVenueSport,
+    venueBookings
 };
