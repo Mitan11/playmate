@@ -96,6 +96,7 @@ class Booking {
 				b.end_datetime AS booking_end,
 				b.total_price,
 				b.created_at AS booking_created_at,
+				b.payment,
 
 				u.user_id,
 				u.first_name AS user_first_name,
@@ -123,6 +124,14 @@ class Booking {
 			[venueId, status]
 		);
 		return rows;
+	}
+
+	static async updatePaymentStatus(bookingId, conn = db) {
+		const [result] = await conn.execute(
+			`UPDATE bookings SET payment = 'paid' WHERE booking_id = ?`,
+			[bookingId]
+		);
+		return result.affectedRows > 0;
 	}
 }
 

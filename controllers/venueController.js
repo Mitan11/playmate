@@ -7,6 +7,7 @@ import { sendWelcomeEmail } from "../utils/Mail.js";
 import { v2 as cloudinary } from 'cloudinary'
 import VenueSport from "../models/VenueSport.js";
 import Booking from "../models/Booking.js";
+import Games from "../models/Games.js";
 
 Venue.createTable().catch(console.error);
 Booking.createTable().catch(console.error);
@@ -714,7 +715,6 @@ const updateVenueSport = async (req, res) => {
         await connection.beginTransaction();
         const { venueSportId } = req.params;
         const { sport_id } = req.body;
-        console.log("Updating venue sport:", venueSportId, sport_id);
 
         // Get current venue_sport to know which venue we're updating
         const currentVenueSport = await VenueSport.findById(venueSportId, connection);
@@ -725,7 +725,6 @@ const updateVenueSport = async (req, res) => {
 
         // Check if this sport already exists for this venue (excluding current record)
         const exist = await VenueSport.existsForVenue(currentVenueSport.venue_id, sport_id, venueSportId, connection);
-        console.log("Existing sport check:", exist);
 
         if (exist) {
             await connection.rollback();
@@ -767,6 +766,73 @@ const venueBookings = async (req, res) => {
     }
 }
 
+const deleteBooking = async (req, res) => {
+    const connection = await db.getConnection();
+    try {
+        await connection.beginTransaction();
+        const { bookingId } = req.params;
+        const exist = await Booking.findById(bookingId, connection);
+        if (!exist) {
+            await connection.rollback();
+            return res.status(404).json(Response.error(404, "Booking not found"));
+        }
+        await Booking.deleteById(bookingId, connection);
+        await connection.commit();
+        res.status(200).json(Response.success(200, "Booking deleted successfully"));
+    } catch (error) {
+        await connection.rollback();
+        console.error("Error deleting booking:", error);
+        res.status(500).json(Response.error(500, "Internal Server Error"));
+    } finally {
+        connection.release();
+    }
+}
+
+const deactiveBooking = async (req, res) => {
+    const connection = await db.getConnection();
+    try {
+        await connection.beginTransaction();
+        const { game_id } = req.params;
+        const exist = await Games.findById(game_id, connection);
+        if (!exist) {
+            await connection.rollback();
+            return res.status(404).json(Response.error(404, "Booking not found"));
+        }
+        await Games.deactivateById(game_id, connection);
+        await connection.commit();
+        res.status(200).json(Response.success(200, "Booking deactivated successfully"));
+    } catch (error) {
+        await connection.rollback();
+        console.error("Error deactivating booking:", error);
+        res.status(500).json(Response.error(500, "Internal Server Error"));
+    } finally {
+        connection.release();
+    }
+}
+
+const paymentStatusUpdate = async (req, res) => {
+    const connection = await db.getConnection();
+    try {
+        await connection.beginTransaction();
+        const { bookingId } = req.params;
+        const exist = await Booking.findById(bookingId, connection);
+        if (!exist) {
+            await connection.rollback();
+            return res.status(404).json(Response.error(404, "Booking not found"));
+        }
+        await Booking.updatePaymentStatus(bookingId, connection);
+        await connection.commit();
+        res.status(200).json(Response.success(200, "Booking payment status updated successfully"));
+    } catch (error) {
+        await connection.rollback();
+        console.error("Error updating booking payment status:", error);
+        res.status(500).json(Response.error(500, "Internal Server Error"));
+    }
+    finally {
+        connection.release();
+    }
+}
+
 export {
     registerVenue,
     venueLogin,
@@ -791,5 +857,8 @@ export {
     CreateVenueSport,
     deleteVenueSport,
     updateVenueSport,
-    venueBookings
+    venueBookings,
+    deleteBooking,
+    deactiveBooking,
+    paymentStatusUpdate
 };
