@@ -23,7 +23,10 @@ import {
     CreateVenueSport,
     deleteVenueSport,
     updateVenueSport,
-    venueBookings
+    venueBookings,
+    deleteBooking,
+    deactiveBooking,
+    paymentStatusUpdate
 } from '../controllers/venueController.js';
 import { venueVerifyToken } from '../middleware/authUser.js';
 import upload from '../middleware/multer.js';
@@ -181,6 +184,24 @@ venueRouter.get('/bookings/:venueId', (req, res) => {
     // #swagger.tags = ['Venue']
     // #swagger.description = 'Get bookings for the venue'
     venueBookings(req, res);
+});
+
+venueRouter.delete('/bookings/:bookingId', (req, res) => {
+    // #swagger.tags = ['Venue']
+    // #swagger.description = 'Delete a booking by ID'
+    deleteBooking(req, res);
+});
+
+venueRouter.patch('/bookings/deactivate/:game_id', (req, res) => {
+    // #swagger.tags = ['Venue']
+    // #swagger.description = 'Deactivate a booking by ID'
+    deactiveBooking(req, res);
+});
+
+venueRouter.patch('/bookings/payment-status/:bookingId', (req, res) => {
+    // #swagger.tags = ['Venue']
+    // #swagger.description = 'Update payment status of a booking by ID'
+    paymentStatusUpdate(req, res);
 });
 
 export default venueRouter;
