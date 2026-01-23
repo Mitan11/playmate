@@ -1,9 +1,9 @@
 import express from 'express';
-import { 
-    getVenueDashboardStats, 
-    registerVenue, 
-    updateVenueProfile, 
-    venueLogin, 
+import {
+    getVenueDashboardStats,
+    registerVenue,
+    updateVenueProfile,
+    venueLogin,
     venueProfile,
     getDailyBookingTrend,
     getMonthlyRevenueTrend,
@@ -31,6 +31,7 @@ import {
 import { venueVerifyToken } from '../middleware/authUser.js';
 import upload from '../middleware/multer.js';
 import { getAllSports } from '../controllers/adminControllers.js';
+import { addNewSlot, deleteSlot, editSlot, getAllSlotsOfVenue } from '../controllers/slotController.js';
 
 const venueRouter = express.Router();
 
@@ -180,28 +181,52 @@ venueRouter.put('/sports/:venueSportId', venueVerifyToken, (req, res) => {
     updateVenueSport(req, res);
 });
 
-venueRouter.get('/bookings/:venueId', (req, res) => {
+venueRouter.get('/bookings/:venueId', venueVerifyToken, (req, res) => {
     // #swagger.tags = ['Venue']
     // #swagger.description = 'Get bookings for the venue'
     venueBookings(req, res);
 });
 
-venueRouter.delete('/bookings/:bookingId', (req, res) => {
+venueRouter.delete('/bookings/:bookingId', venueVerifyToken, (req, res) => {
     // #swagger.tags = ['Venue']
     // #swagger.description = 'Delete a booking by ID'
     deleteBooking(req, res);
 });
 
-venueRouter.patch('/bookings/deactivate/:game_id', (req, res) => {
+venueRouter.patch('/bookings/deactivate/:game_id', venueVerifyToken, (req, res) => {
     // #swagger.tags = ['Venue']
     // #swagger.description = 'Deactivate a booking by ID'
     deactiveBooking(req, res);
 });
 
-venueRouter.patch('/bookings/payment-status/:bookingId', (req, res) => {
+venueRouter.patch('/bookings/payment-status/:bookingId', venueVerifyToken, (req, res) => {
     // #swagger.tags = ['Venue']
     // #swagger.description = 'Update payment status of a booking by ID'
     paymentStatusUpdate(req, res);
+});
+
+venueRouter.get('/allVenueSlots/:venueId', venueVerifyToken, (req, res) => {
+    // #swagger.tags = ['Venue']
+    // #swagger.description = 'Get slots for the venue'
+    getAllSlotsOfVenue(req, res);
+});
+
+venueRouter.delete('/slots/:slotId', venueVerifyToken, (req, res) => {
+    // #swagger.tags = ['Venue']
+    // #swagger.description = 'Delete a slot by ID'
+    deleteSlot(req, res);
+});
+
+venueRouter.patch('/slots/:slotId', venueVerifyToken, (req, res) => {
+    // #swagger.tags = ['Venue']
+    // #swagger.description = 'Update a slot by ID'
+    editSlot(req, res);
+});
+
+venueRouter.post('/slots/:slotId', venueVerifyToken, (req, res) => {
+    // #swagger.tags = ['Venue']
+    // #swagger.description = 'Update a slot by ID'
+    addNewSlot(req, res);
 });
 
 export default venueRouter;
