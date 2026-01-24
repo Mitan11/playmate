@@ -223,9 +223,9 @@ venueRouter.patch('/slots/:slotId', venueVerifyToken, (req, res) => {
     editSlot(req, res);
 });
 
-venueRouter.post('/slots/:slotId', venueVerifyToken, (req, res) => {
+venueRouter.post('/slots', venueVerifyToken, (req, res) => {
     // #swagger.tags = ['Venue']
-    // #swagger.description = 'Update a slot by ID'
+    // #swagger.description = 'Add a new slot'
     addNewSlot(req, res);
 });
 
