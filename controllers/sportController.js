@@ -4,8 +4,6 @@ import Response from "../utils/Response.js";
 import Sport from "../models/Sport.js";
 import UserSport from "../models/UserSport.js";
 
-Sport.createTable().catch(console.error);
-
 const healthCheck = async (req, res) => {
     // Health check for the Auth API
     const start = Date.now();

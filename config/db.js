@@ -7,7 +7,8 @@ const dbConfig = {
     password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME,
     waitForConnections: true,
-    connectionLimit: 10,
+    // Provider cap is 5 concurrent connections; keep pool below that to avoid ER_USER_LIMIT_REACHED
+    connectionLimit: 3,
     queueLimit: 0
 };
 

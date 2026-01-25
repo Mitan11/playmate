@@ -7,9 +7,6 @@ import { sendEmail, sendWelcomeEmail } from "../utils/Mail.js";
 import { playmateWelcomeTemplate, resetPasswordTemplate } from "../utils/emailTemplates.js";
 import os from "os";
 
-// Initialize database table
-User.createTable().catch(console.error);
-
 // User registration controller
 const register = async (req, res) => {
     // connection pool
