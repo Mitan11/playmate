@@ -4,9 +4,6 @@ import db from "../config/db.js";
 import User from "../models/User.js";
 import { v2 as cloudinary } from 'cloudinary'
 
-UserSport.createTable().catch(console.error);
-User.createTable().catch(console.error);
-
 const updateUserDetails = async (req, res) => {
     const connection = await db.getConnection();
     try {
@@ -83,7 +80,7 @@ const addUserSport = async (req, res) => {
     const connection = await db.getConnection();
     try {
         await connection.beginTransaction();
-
+        
         const { user_id, sport_id, skill_level } = req.body;
 
         if (!user_id || isNaN(user_id)) {

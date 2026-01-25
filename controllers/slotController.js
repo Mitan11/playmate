@@ -3,8 +3,6 @@ import db from "../config/db.js";
 import Slot from "../models/Slot.js";
 import Response from "../utils/Response.js";
 
-Slot.createTable().catch(console.error);
-
 const getAllSlotsOfVenue = async (req, res) => {
     const connection = await db.getConnection();
     try {

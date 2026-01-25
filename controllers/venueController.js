@@ -9,10 +9,6 @@ import VenueSport from "../models/VenueSport.js";
 import Booking from "../models/Booking.js";
 import Games from "../models/Games.js";
 
-Venue.createTable().catch(console.error);
-Booking.createTable().catch(console.error);
-Games.createTable().catch(console.error);
-
 const registerVenue = async (req, res) => {
     // Start transaction
     const connection = await db.getConnection();

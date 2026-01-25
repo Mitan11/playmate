@@ -10,9 +10,6 @@ import Venue from "../models/Venue.js";
 import Post from "../models/Post.js";
 dayjs.extend(relativeTime);
 
-Sport.createTable().catch(console.error);
-Post.createTable().catch(console.error);
-
 const adminLogin = async (req, res) => {
     try {
         const { email, password } = req.body;

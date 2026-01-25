@@ -15,6 +15,33 @@ import swaggerUi from "swagger-ui-express";
 import swaggerDocument from "./swagger-output.json" with { type: "json" };
 import venueRouter from "./routes/venueRouter.js";
 import adminRouter from "./routes/adminRouter.js";
+import Sport from "./models/Sport.js";
+import User from "./models/User.js";
+import Venue from "./models/Venue.js";
+import VenueSport from "./models/VenueSport.js";
+import Slot from "./models/Slot.js";
+import Games from "./models/Games.js";
+import Booking from "./models/Booking.js";
+import Post from "./models/Post.js";
+import UserSport from "./models/UserSport.js";
+
+// Ensure tables exist in dependency-safe order to satisfy foreign keys
+const tablesReady = (async () => {
+    try {
+        await Sport.createTable();
+        await User.createTable();
+        await Venue.createTable();
+        await VenueSport.createTable();
+        await Slot.createTable();
+        await Games.createTable();
+        await Booking.createTable();
+        await Post.createTable();
+        await UserSport.createTable();
+        console.log("All tables ensured");
+    } catch (err) {
+        console.error("Table initialization failed:", err);
+    }
+})();
 
 class App {
     constructor() {
@@ -67,6 +94,9 @@ class App {
         try {
             await db.getConnection();
             console.log("Database connection successful on startup");
+
+            // Wait for table creation before accepting traffic
+            await tablesReady;
 
             this.app.listen(this.PORT, "0.0.0.0", () => {
                 console.log(`Local server running → http://localhost:${this.PORT}`);
