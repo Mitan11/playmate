@@ -8,6 +8,7 @@ import { v2 as cloudinary } from 'cloudinary'
 import VenueSport from "../models/VenueSport.js";
 import Booking from "../models/Booking.js";
 import Games from "../models/Games.js";
+import VenueImages from "../models/VenueImages.js";
 
 const registerVenue = async (req, res) => {
     // Start transaction
@@ -152,6 +153,83 @@ const venueProfile = async (req, res) => {
     } catch (error) {
         await connection.rollback();
         console.error("Error fetching venue profile:", error);
+        res.status(500).json(Response.error(500, "Internal Server Error"));
+    } finally {
+        connection.release();
+    }
+}
+
+const venueIamgeUpload = async (req, res) => {
+    const connection = await db.getConnection();
+    try {
+        connection.beginTransaction();
+        const { venueId } = req.params;
+
+        const exist = await VenueImages.findByVenueId(venueId, connection);
+
+        if (exist.length >= 3) {
+            await connection.rollback();
+            return res.status(400).json(Response.error(400, "Venue image limit reached"));
+        }
+
+        if (req.file) {
+            try {
+                const imageUpload = await cloudinary.uploader.upload(req.file.path, { resource_type: "image" });
+                const imageUrl = imageUpload.secure_url;
+                await VenueImages.create({ venue_id: venueId, image_url: imageUrl }, connection);
+                await connection.commit();
+                return res.status(201).json(Response.success(201, "Venue image uploaded successfully", { image_url: imageUrl }));
+            } catch (uploadError) {
+                console.error('Cloudinary upload error:', uploadError);
+                await connection.rollback();
+                return res.status(500).json(Response.error(500, "Image upload failed"));
+            }
+        } else {
+            await connection.rollback();
+            return res.status(400).json(Response.error(400, "No image file provided"));
+        }
+    } catch (error) {
+        await connection.rollback();
+        console.error("Error uploading venue image:", error);
+        res.status(500).json(Response.error(500, "Internal Server Error"));
+    } finally {
+        connection.release();
+    }
+}
+
+const getVenueImages = async (req, res) => {
+    const connection = await db.getConnection();
+    try {
+        connection.beginTransaction();
+        const { venueId } = req.params;
+        const images = await VenueImages.findByVenueId(venueId, connection);
+        await connection.commit();
+        res.status(200).json(Response.success(200, "Venue images retrieved successfully", images));
+    } catch (error) {
+        await connection.rollback();
+        console.error("Error fetching venue images:", error);
+        res.status(500).json(Response.error(500, "Internal Server Error"));
+    } finally {
+        connection.release();
+    }
+}
+
+const deleteVenueImage = async (req, res) => {
+    const connection = await db.getConnection();
+    try {
+        connection.beginTransaction();
+        const { venueImageId } = req.params;
+        const exist = await VenueImages.findById(venueImageId, connection);
+        if (!exist) {
+            await connection.rollback();
+            return res.status(404).json(Response.error(404, "Venue image not found"));
+        }
+        await VenueImages.delete(venueImageId, connection);
+        await connection.commit();
+        res.status(200).json(Response.success(200, "Venue image deleted successfully"));
+    } catch (error) {
+        await connection.rollback();
+        console.error("Error deleting venue image:", error);
         res.status(500).json(Response.error(500, "Internal Server Error"));
     } finally {
         connection.release();
@@ -834,6 +912,9 @@ export {
     registerVenue,
     venueLogin,
     venueProfile,
+    venueIamgeUpload,
+    getVenueImages,
+    deleteVenueImage,
     updateVenueProfile,
     getVenueDashboardStats,
     getDailyBookingTrend,
