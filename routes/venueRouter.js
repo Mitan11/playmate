@@ -26,7 +26,10 @@ import {
     venueBookings,
     deleteBooking,
     deactiveBooking,
-    paymentStatusUpdate
+    paymentStatusUpdate,
+    venueIamgeUpload,
+    getVenueImages,
+    deleteVenueImage
 } from '../controllers/venueController.js';
 import { venueVerifyToken } from '../middleware/authUser.js';
 import upload from '../middleware/multer.js';
@@ -46,6 +49,24 @@ venueRouter.post('/login', (req, res) => {
     // #swagger.tags = ['Venue']
     // #swagger.description = 'Venue login'
     venueLogin(req, res);
+});
+
+venueRouter.post('/venueImage/upload/:venueId', venueVerifyToken, upload.single('venue_image'), (req, res) => {
+    // #swagger.tags = ['Venue']
+    // #swagger.description = 'Upload venue image'
+    venueIamgeUpload(req, res);
+});
+
+venueRouter.get('/venueImages/:venueId', venueVerifyToken, (req, res) => {
+    // #swagger.tags = ['Venue']
+    // #swagger.description = 'Get venue images by venue ID'
+    getVenueImages(req, res);
+});
+
+venueRouter.delete('/venueImage/:venueImageId', venueVerifyToken, (req, res) => {
+    // #swagger.tags = ['Venue']
+    // #swagger.description = 'Delete venue image by image ID'
+    deleteVenueImage(req, res);
 });
 
 venueRouter.get('/profile/:venueId', venueVerifyToken, (req, res) => {
