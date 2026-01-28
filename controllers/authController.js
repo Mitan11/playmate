@@ -16,7 +16,7 @@ const register = async (req, res) => {
         // Start transaction
         await connection.beginTransaction();
 
-        const { first_name, last_name, user_email, user_password } = req.body;
+        const { first_name, last_name, user_email, user_password, phone_number } = req.body;
 
         // Default profile image URL
         const defaultProfileImage = "https://res.cloudinary.com/dsw5tkkyr/image/upload/v1764845539/avatar_wcaknk.png";
@@ -55,6 +55,7 @@ const register = async (req, res) => {
             user_password: hashedPassword,
             first_name,
             last_name,
+            phone_number,
             profile_image: imageUrl,
         };
 
@@ -279,8 +280,8 @@ const resetPassword = async (req, res) => {
 
 const changePassword = async (req, res) => {
     try {
-        const { currentPassword, newPassword } = req.body;
-        const user_email = req.user.user_email; // Get email from JWT token
+        const { currentPassword, newPassword  } = req.body;
+        const user_email = req.user[0].user_email; // Get email from JWT token
 
         // Find user by email
         const user = await User.findByEmail(user_email);

@@ -9,7 +9,7 @@ const updateUserDetails = async (req, res) => {
     try {
         await connection.beginTransaction();
 
-        const { user_email, first_name, last_name } = req.body;
+        const { user_email, first_name, last_name , phone_number } = req.body;
         let profile_image = null;
 
         // upload image to cloudinary only if file is provided
@@ -42,6 +42,7 @@ const updateUserDetails = async (req, res) => {
             user_email,
             first_name,
             last_name: last_name || existingUser.last_name,
+            phone_number: phone_number || existingUser.phone_number,
             profile_image: profile_image || existingUser.profile_image
         };
 
@@ -62,6 +63,7 @@ const updateUserDetails = async (req, res) => {
                     user_email: updatedUser.user_email,
                     first_name: updatedUser.first_name,
                     last_name: updatedUser.last_name,
+                    phone_number: updatedUser.phone_number,
                     profile_image: updatedUser.profile_image
                 }
             }
@@ -123,7 +125,7 @@ const userProfile = async (req, res) => {
         
         const user = await User.findById(userId, connection);
 
-        res.status(200).json(Response.success(200, "User retrieved successfully", { user }));
+        res.status(200).json(Response.success(200, "User retrieved successfully", user));
 
     }catch (error) {
         await connection.rollback();

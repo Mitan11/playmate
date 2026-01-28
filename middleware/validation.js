@@ -33,6 +33,13 @@ export const validateUserRegistration = [
         .withMessage('Last name must be between 1 and 50 characters')
         .matches(/^[a-zA-Z\s'-]+$/)
         .withMessage('Last name can only contain letters, spaces, apostrophes, and hyphens'),
+    body('phone_number')
+        .optional()
+        .trim()
+        .isLength({ min: 10, max: 15 })
+        .withMessage('Phone number must be valid')
+        .matches(/^[0-9+\-\s()]+$/)
+        .withMessage('Phone number can only contain numbers, spaces, parentheses, plus and hyphen signs')
 ];
 
 // User login validation rules
