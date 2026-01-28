@@ -8,6 +8,8 @@ class User {
         this.first_name = userData.first_name;
         this.last_name = userData.last_name;
         this.profile_image = userData.profile_image;
+        this.phone_number = userData.phone_number;
+        this.created_at = userData.created_at;
     }
 
     // Create users table if it doesn't exist
@@ -16,6 +18,7 @@ class User {
             CREATE TABLE IF NOT EXISTS users (
                 user_id INT AUTO_INCREMENT PRIMARY KEY,
                 user_email VARCHAR(100) NOT NULL UNIQUE,
+                phone_number VARCHAR(15) NULL,
                 user_password VARCHAR(61) NOT NULL,
                 first_name VARCHAR(50) NOT NULL,
                 last_name VARCHAR(50) NULL,
@@ -51,12 +54,11 @@ class User {
 
     // Save new user to database
     static async save(userData, conn = db) {
-        const { user_email, user_password, first_name, last_name, profile_image } = userData;
+        const { user_email, user_password, first_name, last_name, profile_image, phone_number } = userData;
 
         try {
-            const query = `INSERT INTO users (user_email, user_password, first_name, last_name, profile_image) VALUES (?, ?, ?, ?, ?)`;
-            const params = [user_email, user_password, first_name, last_name, profile_image];
-
+            const query = `INSERT INTO users (user_email, user_password, first_name, last_name, profile_image, phone_number) VALUES (?, ?, ?, ?, ?, ?)`;
+            const params = [user_email, user_password, first_name, last_name, profile_image, phone_number];
             // Insert user into database
             const [result] = await conn.execute(
                 query,
@@ -74,10 +76,10 @@ class User {
     static async findById(userId, conn = db) {
         try {
             const [rows] = await conn.execute(
-                'SELECT user_id, user_email, first_name, last_name, profile_image FROM users WHERE user_id = ?',
+                'SELECT user_id, user_email, first_name, last_name, phone_number, profile_image FROM users WHERE user_id = ?',
                 [userId]
             );
-            return rows.length > 0 ? new User(rows[0]) : null;
+            return rows
         } catch (error) {
             console.error('Error finding user by ID:', error);
             throw error;
@@ -100,7 +102,7 @@ class User {
 
     static async updateUserDetails(userDetails, conn = db) {
         try {
-            const { first_name, last_name, profile_image, user_email } = userDetails;
+            const { first_name, last_name, profile_image, user_email, phone_number } = userDetails;
 
             // Build dynamic query to only update provided fields
             let query = 'UPDATE users SET ';
@@ -118,6 +120,11 @@ class User {
             if (profile_image !== undefined) {
                 updates.push('profile_image = ?');
                 params.push(profile_image);
+            }
+
+            if (phone_number !== undefined) {
+                updates.push('phone_number = ?');
+                params.push(phone_number);
             }
 
             if (updates.length === 0) {
@@ -138,8 +145,21 @@ class User {
     static async getAllUsersDetails(conn = db) {
         try {
             const [rows] = await conn.execute(
-                'select u.user_id, u.first_name, u.last_name, u.user_email, u.profile_image, s.sport_name, us.skill_level, u.created_at from users u join user_sports us on u.user_id = us.user_id join sports s on us.sport_id = s.sport_id order by u.user_id;'
-            );
+                `SELECT 
+                    u.user_id,
+                    u.first_name,
+                    u.last_name,
+                    u.user_email,
+                    u.phone_number,
+                    u.profile_image,
+                    s.sport_name,
+                    us.skill_level,
+                    u.created_at
+                FROM playmate2.users u
+                LEFT JOIN playmate2.user_sports us 
+                    ON u.user_id = us.user_id
+                LEFT JOIN playmate2.sports s 
+                    ON us.sport_id = s.sport_id`);
             return rows;
         } catch (error) {
             console.error('Error fetching all users:', error);

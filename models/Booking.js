@@ -102,6 +102,7 @@ class Booking {
 				u.first_name AS user_first_name,
 				u.last_name AS user_last_name,
 				u.user_email,
+				u.phone_number,
 
 				s.sport_id,
 				s.sport_name,
