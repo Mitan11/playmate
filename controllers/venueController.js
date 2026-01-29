@@ -2,7 +2,7 @@ import Venue from "../models/Venue.js";
 import Response from "../utils/Response.js";
 import db from "../config/db.js";
 import AuthHelpers from "../utils/AuthHelpers.js";
-import { playmateWelcomeTemplate } from "../utils/emailTemplates.js";
+import { playmateWelcomeTemplate, venueOwnerWelcomeTemplate } from "../utils/emailTemplates.js";
 import { sendWelcomeEmail } from "../utils/Mail.js";
 import { v2 as cloudinary } from 'cloudinary'
 import VenueSport from "../models/VenueSport.js";
@@ -65,7 +65,7 @@ const registerVenue = async (req, res) => {
 
         // Send welcome email
         console.log("Sending welcome email to:", email);
-        const html = playmateWelcomeTemplate({ name: first_name });
+        const html = venueOwnerWelcomeTemplate({ name: first_name });
         const emailResult = await sendWelcomeEmail(email, "Welcome to Playmate!", html);
         console.log("Welcome email result:", emailResult);
 

@@ -1,12 +1,12 @@
 // Playmate Welcome Email Template
 export const playmateWelcomeTemplate = ({
-    name,
-    logoUrl = "https://res.cloudinary.com/dsw5tkkyr/image/upload/v1764918615/1758647674156_nl5ayo.png",
-    profileUrl = "https://playmate.app/me",
+  name,
+  logoUrl = "https://res.cloudinary.com/dsw5tkkyr/image/upload/v1764918615/1758647674156_nl5ayo.png",
+  profileUrl = "playmate://",
 }) => {
-    const year = new Date().getFullYear();
+  const year = new Date().getFullYear();
 
-    return `
+  return `
 <!DOCTYPE html>
 <html lang="en" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
 <head>
@@ -244,7 +244,7 @@ export const playmateWelcomeTemplate = ({
 
 // Password Reset Email Template
 export const resetPasswordTemplate = (otp) => {
-    return `
+  return `
     <div style="
         font-family: Arial, sans-serif;
         max-width: 550px;
@@ -301,3 +301,154 @@ export const resetPasswordTemplate = (otp) => {
     </div>
     `;
 };
+
+export const venueOwnerWelcomeTemplate = ({
+  name,
+  logoUrl = "https://res.cloudinary.com/dsw5tkkyr/image/upload/v1764918615/1758647674156_nl5ayo.png",
+  dashboardUrl = "http://localhost:5174/profile",
+}) => {
+  const year = new Date().getFullYear();
+  return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="x-apple-disable-message-reformatting">
+  <title>Welcome to Playmate Venue Owner</title>
+  <style>
+    /* Reset styles for email clients */
+    * {
+      -webkit-text-size-adjust: 100%;
+      -ms-text-size-adjust: 100%;
+    }
+    /* Mobile styles */
+    @media only screen and (max-width: 620px) {
+      table[class="container"] {
+        width: 100% !important;
+        max-width: 100% !important;
+      }
+      td[class="header"] {
+        padding: 15px !important;
+      }
+      td[class="body"] {  
+        padding: 15px !important;
+      }
+      td[class="header-logo"] {
+        width: 80px !important;
+        height: 80px !important;
+        padding-right: 10px !important;
+      }
+      td[class="header-text"] {
+        padding-left: 10px !important;
+        text-align: right !important;
+      }
+      img[class="logo"] {
+        width: 80px !important;
+        height: 80px !important;
+      } 
+      h1 {
+        font-size: 20px !important;
+        line-height: 1.3 !important;
+      }
+      p {
+        font-size: 14px !important;
+        line-height: 1.5 !important;
+      }
+      a[class="button"] {
+        padding: 14px 20px !important;
+        font-size: 16px !important;
+        display: block !important;
+        text-align: center !important;
+      }
+      div[class="info-box"] {
+        padding: 12px !important;
+      }
+    }
+  </style>
+</head>
+<body style="margin:0; padding:0; background:#f6f8fa; font-family: Arial, Helvetica, sans-serif; color:#0f172a; -webkit-font-smoothing: antialiased; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%;" bgcolor="#f6f8fa">
+  <center>
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" bgcolor="#f6f8fa">
+      <tr>
+        <td align="center" style="padding: 20px 10px;">
+          <!-- MAIN CONTAINER -->
+          <table class="container" width="600" cellpadding="0" cellspacing="0" border="0" role="presentation" bgcolor="#ffffff" style="max-width: 600px; width: 100%; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.08);" class="main-table
+">
+            <!-- HEADER -->
+            <tr>  
+              <td class="header" align="center" bgcolor="#22A06B" style="background: #22A06B; padding: 20px; color: #ffffff;">
+                <table class="header-table" width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation">
+                  <tr>
+                    <!-- LEFT: LOGO -->
+                    <td class="header-logo" align="left" valign="middle" style="width: 100px; padding-right: 20px; vertical-align: middle;">
+                      <img src="${logoUrl}" class="logo" width="100" height="100" alt="Playmate Logo" style="border-radius: 50%; border: 0; outline: none; display: block; max-width: 100%; height: auto;">
+                    </td> 
+                    <!-- RIGHT: TEXT -->
+                    <td class="header-text" align="right" valign="middle" style="vertical-align: middle; text-align: right;">
+                      <h2 style="margin: 0; color: #ffffff !important; font-size: 20px; font-weight: bold; text-align: right;">Playmate</h2>
+                      <p style="margin: 0; margin-top: 4px; font-size: 14px; color: #ffffff !important; text-align: right;">Book • Play • Share</p>
+                    </td>
+                  </tr> 
+                </table>
+              </td>
+            </tr>
+            <!-- SPACER -->
+            <tr><td class="spacer" height="0" style="font-size: 0; line-height: 0;">&nbsp;</td></tr>
+            <!-- BODY -->
+            <tr>  
+              <td class="body" style="padding: 20px; color: #0f172a;">
+
+                <h1 style="font-size: 22px; margin: 0 0 10px 0; color: #0f172a; font-weight: bold;">Welcome to Playmate Venue Owner, ${name} 👋</h1>
+                <p style="font-size: 15px; line-height: 1.6; margin: 0 0 20px 0; color: #444444;">
+                  You're all set! As a venue owner on Playmate, you can list your sports facilities, manage bookings, and connect with a vibrant community of sports enthusiasts. 
+                </p>
+                
+                <!-- INFO BOX -->
+                <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation">
+                  <tr>
+                    <td class="info-box" bgcolor="#f0fff6" style="background: #f0fff6; border: 1px solid #b9efd6; padding: 15px; border-radius: 8px;">
+                      <p style="margin: 0 0 8px 0; font-weight: 600; color: #0f172a;">Complete your venue profile to get started:</p>
+                      <ul style="margin: 0; padding-left: 18px; color: #444;">
+                        <li style="margin-bottom: 5px;">Add your venue details & photos</li>
+                        <li style="margin-bottom: 5px;">Set up sports facilities & pricing</li>
+                        <li style="margin-bottom: 5px;">Manage bookings & availability</li>
+                        <li style="margin-bottom: 0;">Connect with sports enthusiasts</li>
+                      </ul>
+                    </td>
+                  </tr>
+                </table>
+                
+                <!-- SPACER -->
+                <tr><td class="spacer" height="25" style="font-size: 0; line-height: 0;">&nbsp;</td></tr>
+                
+                <!-- BUTTON -->
+                <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation">
+                  <tr>
+                    <td align="center">
+                      <a href="${dashboardUrl}" class="button" style="display: inline-block; padding: 12px 22px; background: #22A06B; color: #ffffff !important; text-decoration: none; font-size: 15px; font-weight: 600; border-radius: 6px; line-height: 1.5; -webkit-text-size-adjust: none; mso-hide: all;">Complete Your Profile</a>
+                    </td>
+                  </tr>
+                </table>
+                <!-- SPACER -->
+                <tr><td class="spacer" height="25" style="font-size: 0; line-height: 0;">&nbsp;</td></tr>
+              </td>
+            </tr>
+            <!-- FOOTER -->
+            <tr>
+              <td bgcolor="#f2f5f4" style="background: #f2f5f4; padding: 15px; text-align: center; color: #555555; font-size: 12px; line-height: 1.5;">
+                <div style="margin-bottom: 6px;">Playmate — Book venues • Join games • Share moments</div>
+                <div style="margin-bottom: 6px;">If you didn't sign up, please ignore this email.</div>
+                <div>© ${year} Playmate</div>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </center>
+</body>
+</html>
+    `;
+}
