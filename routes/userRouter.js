@@ -1,37 +1,49 @@
 import express from 'express';
-import { addUserSport, deleteUserSport, updateUserDetails, userProfile } from '../controllers/userController.js';
+import { addUserSport, createPost, deleteUserSport, updateUserDetails, userPosts, userProfile } from '../controllers/userController.js';
 import { handleValidationErrors } from '../middleware/validation.js';
 import upload from '../middleware/multer.js';
 import { verifyToken } from '../middleware/authUser.js';
 
-const userSportRouter = express.Router();
+const userRouter = express.Router();
 
 // update user Details routes
-userSportRouter.put('/updateDetails',upload.single('profile_image'), handleValidationErrors, verifyToken, (req, res) => {
+userRouter.put('/updateDetails', upload.single('profile_image'), handleValidationErrors, verifyToken, (req, res) => {
     // #swagger.tags = ['User']
     // #swagger.description = 'Update user details'
     updateUserDetails(req, res);
 });
 
 // add user sport
-userSportRouter.post('/userSport', verifyToken, (req, res) => {
+userRouter.post('/userSport', verifyToken, (req, res) => {
     // #swagger.tags = ['User']
     // #swagger.description = 'Add sport to user profile'
     addUserSport(req, res);
 });
 
 // delete user sport
-userSportRouter.delete('/deleteUserSport/:user_id/:sport_id', verifyToken, (req, res) => {
+userRouter.delete('/deleteUserSport/:user_id/:sport_id', verifyToken, (req, res) => {
     // #swagger.tags = ['User']
     // #swagger.description = 'Remove sport from user profile'
     deleteUserSport(req, res);
 });
 
 // user profile
-userSportRouter.get('/profile/:userId', verifyToken, (req, res) => {
+userRouter.get('/profile/:userId', verifyToken, (req, res) => {
     // #swagger.tags = ['User']
     // #swagger.description = 'Get user profile by ID'
     userProfile(req, res);
 });
 
-export default userSportRouter;
+userRouter.get('/userPosts/:userId', verifyToken, (req, res) => {
+    // #swagger.tags = ['User']
+    // #swagger.description = 'Get user posts by ID'
+    userPosts(req, res);
+});
+
+userRouter.post('/createPost/:userId', upload.single('media_url'), verifyToken, (req, res) => {
+    // #swagger.tags = ['User']
+    // #swagger.description = 'Create a new post'
+    createPost(req, res);
+});
+
+export default userRouter;
