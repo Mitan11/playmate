@@ -3,13 +3,14 @@ import Response from "../utils/Response.js";
 import db from "../config/db.js";
 import User from "../models/User.js";
 import { v2 as cloudinary } from 'cloudinary'
+import Post from "../models/Post.js";
 
 const updateUserDetails = async (req, res) => {
     const connection = await db.getConnection();
     try {
         await connection.beginTransaction();
 
-        const { user_email, first_name, last_name , phone_number } = req.body;
+        const { user_email, first_name, last_name, phone_number } = req.body;
         let profile_image = null;
 
         // upload image to cloudinary only if file is provided
@@ -82,7 +83,7 @@ const addUserSport = async (req, res) => {
     const connection = await db.getConnection();
     try {
         await connection.beginTransaction();
-        
+
         const { user_id, sport_id, skill_level } = req.body;
 
         if (!user_id || isNaN(user_id)) {
@@ -122,12 +123,12 @@ const userProfile = async (req, res) => {
         if (!userId || isNaN(userId)) {
             return res.status(400).json(Response.error(400, "Invalid user ID"));
         }
-        
+
         const user = await User.findById(userId, connection);
 
         res.status(200).json(Response.success(200, "User retrieved successfully", user));
 
-    }catch (error) {
+    } catch (error) {
         await connection.rollback();
         console.error("Error fetching user sports:", error);
         res.status(500).json(Response.error(500, "Internal Server Error"));
@@ -140,7 +141,7 @@ const deleteUserSport = async (req, res) => {
     const connection = await db.getConnection();
     try {
         await connection.beginTransaction();
-        
+
         const { user_id, sport_id } = req.params;
 
         if (!user_id || isNaN(user_id)) {
@@ -172,4 +173,73 @@ const deleteUserSport = async (req, res) => {
     }
 }
 
-export { addUserSport, updateUserDetails, userProfile, deleteUserSport };
+const userPosts = async (req, res) => {
+    const connection = await db.getConnection();
+    try {
+        const { userId } = req.params;
+        if (!userId || isNaN(userId)) {
+            return res.status(400).json(Response.error(400, "Invalid user ID"));
+        }
+        const posts = await Post.getUserPosts(userId, connection);
+
+        res.status(200).json(Response.success(200, "User posts retrieved successfully", { posts }));
+    } catch (error) {
+        await connection.rollback();
+        console.error("Error fetching user posts:", error);
+        res.status(500).json(Response.error(500, "Internal Server Error"));
+    } finally {
+        connection.release();
+    }
+}
+
+const createPost = async (req, res) => {
+    const connection = await db.getConnection();
+    try {
+        await connection.beginTransaction();
+
+        const user_id = req.params.userId;
+        const { text_content } = req.body;
+        const file = req.file;
+        let secure_url = null;
+
+        // Upload file to Cloudinary if provided
+        if (file) {
+            try {
+                const uploadResult = await cloudinary.uploader.upload(file.path, {
+                    resource_type: "image"
+                });
+                secure_url = uploadResult.secure_url;
+
+            } catch (uploadError) {
+                console.error('Cloudinary upload error:', uploadError);
+                await connection.rollback();
+                return res.status(500).json(Response.error(500, "Failed to upload media"));
+            }
+        }
+
+        // Validate that at least text or media is provided
+        if (!text_content && !secure_url) {
+            await connection.rollback();
+            return res.status(400).json(Response.error(400, "Post must contain text or media"));
+        }
+
+        const postData = {
+            user_id,
+            text_content: text_content || null,
+            media_url: secure_url || null
+        };
+
+        await Post.save(postData, connection);
+        await connection.commit();
+
+        res.status(201).json(Response.success(201, "Post created successfully", { post: postData }));
+    } catch (error) {
+        await connection.rollback();
+        console.error("Error creating post:", error);
+        res.status(500).json(Response.error(500, "Internal Server Error"));
+    } finally {
+        connection.release();
+    }
+}
+
+export { addUserSport, updateUserDetails, userProfile, deleteUserSport, userPosts, createPost };

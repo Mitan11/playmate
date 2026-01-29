@@ -135,7 +135,7 @@ class Post {
     static async updatePost(postId, updates, conn = db) {
         const fields = [];
         const params = [];
-        
+
         if (updates.text_content !== undefined) {
             fields.push('text_content = ?');
             params.push(updates.text_content);
@@ -144,9 +144,9 @@ class Post {
             fields.push('media_url = ?');
             params.push(updates.media_url);
         }
-        
+
         if (!fields.length) return false;
-        
+
         params.push(postId);
         const [result] = await conn.execute(
             `UPDATE posts SET ${fields.join(', ')} WHERE post_id = ?`,
@@ -249,7 +249,7 @@ class Post {
             ORDER BY p.created_at DESC
             LIMIT ? OFFSET ?
         `, [limit, offset]);
-        
+
         return rows.map(row => new Post(row));
     }
 
@@ -279,9 +279,35 @@ class Post {
             GROUP BY p.post_id
             ORDER BY p.created_at DESC
         `, [`%${searchTerm}%`]);
-        
+
         return rows.map(row => new Post(row));
     }
+
+    static async getUserPosts(userId, conn = db) {
+        try {
+            const [rows] = await conn.execute(
+                `SELECT 
+                    p.post_id,
+                    p.text_content,
+                    p.media_url,
+                    p.created_at
+                FROM posts p
+                WHERE p.user_id = ? ORDER BY p.created_at DESC`,
+                [userId]
+            );
+
+            const posts = {
+                user_id: userId,
+                posts: rows
+            }
+
+            return posts;
+        } catch (error) {
+            console.error('Error fetching user posts:', error);
+            throw error;
+        }
+    }
+
 }
 
 export default Post;

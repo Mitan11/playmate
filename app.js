@@ -10,8 +10,6 @@ import response from "./utils/Response.js";
 import authRouter from "./routes/authRouter.js";
 import connectCloudinary from "./utils/Cloudinary.js";
 import sportRouter from "./routes/sportRouter.js";
-import userSportRouter from "./routes/userRouter.js";
-import swaggerUi from "swagger-ui-express";
 import swaggerDocument from "./swagger-output.json" with { type: "json" };
 import venueRouter from "./routes/venueRouter.js";
 import adminRouter from "./routes/adminRouter.js";
@@ -25,6 +23,7 @@ import Booking from "./models/Booking.js";
 import Post from "./models/Post.js";
 import UserSport from "./models/UserSport.js";
 import VenueImages from "./models/VenueImages.js";
+import userRouter from "./routes/userRouter.js";
 
 // Ensure tables exist in dependency-safe order to satisfy foreign keys
 const tablesReady = (async () => {
@@ -76,7 +75,7 @@ class App {
 
         this.app.use("/api/v1/auth", authRouter);
         this.app.use("/api/v1/sports", sportRouter);
-        this.app.use("/api/v1/user", userSportRouter);
+        this.app.use("/api/v1/user", userRouter);
         this.app.use("/api/v1/venue", venueRouter);
         this.app.use("/api/v1/admin", adminRouter);
 
