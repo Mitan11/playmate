@@ -81,8 +81,8 @@ class VenueSport {
                 s.sport_id,
                 s.sport_name,
                 vs.created_at
-                FROM playmate2.venue_sports vs
-                JOIN playmate2.sports s ON vs.sport_id = s.sport_id
+                FROM venue_sports vs
+                JOIN sports s ON vs.sport_id = s.sport_id
                 WHERE vs.venue_id = ?`, [venueId]);
         return rows;
     }

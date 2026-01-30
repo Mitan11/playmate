@@ -112,14 +112,14 @@ class Booking {
 
 				g.game_id,
 				g.status AS game_status
-			FROM playmate2.bookings b
-			JOIN playmate2.users u ON b.user_id = u.user_id
-			JOIN playmate2.venues v ON b.venue_id = v.venue_id
-			JOIN playmate2.venue_sports vs ON b.venue_sport_id = vs.venue_sport_id
-			JOIN playmate2.sports s ON vs.sport_id = s.sport_id
-			LEFT JOIN playmate2.slots sl ON b.slot_id = sl.slot_id
-			JOIN playmate2.games g ON b.game_id = g.game_id
-			JOIN playmate2.users hu ON g.host_user_id = hu.user_id
+			FROM bookings b
+			JOIN users u ON b.user_id = u.user_id
+			JOIN venues v ON b.venue_id = v.venue_id
+			JOIN venue_sports vs ON b.venue_sport_id = vs.venue_sport_id
+			JOIN sports s ON vs.sport_id = s.sport_id
+			LEFT JOIN slots sl ON b.slot_id = sl.slot_id
+			JOIN games g ON b.game_id = g.game_id
+			JOIN users hu ON g.host_user_id = hu.user_id
 			WHERE b.venue_id = ? AND g.status = ?
 			ORDER BY b.start_datetime DESC`,
 			[venueId, status]

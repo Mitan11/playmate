@@ -230,8 +230,16 @@ class Post {
 
     // Get posts with pagination
     static async getPostsWithPagination(page = 1, limit = 10, conn = db) {
-        const offset = (page - 1) * limit;
-        const [rows] = await conn.execute(`
+        const pageNum = parseInt(page, 10) || 1;
+        const limitNum = parseInt(limit, 10) || 10;
+        const offset = (pageNum - 1) * limitNum;
+
+        console.log('Pagination params:', { pageNum, limitNum, offset, types: { limitNum: typeof limitNum, offset: typeof offset } });
+
+        // limitNum  = 10   // posts per page
+        // offset    = 20   // skip first 20 posts
+
+        const [rows] = await conn.query(`
             SELECT 
                 p.post_id,
                 p.user_id,
@@ -245,10 +253,10 @@ class Post {
             FROM posts p
             JOIN users u ON p.user_id = u.user_id
             LEFT JOIN post_likes pl ON p.post_id = pl.post_id
-            GROUP BY p.post_id
+            GROUP BY p.post_id, p.user_id, p.text_content, p.media_url, p.created_at, u.first_name, u.last_name, u.profile_image
             ORDER BY p.created_at DESC
             LIMIT ? OFFSET ?
-        `, [limit, offset]);
+        `, [limitNum, offset]);
 
         return rows.map(row => new Post(row));
     }

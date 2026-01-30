@@ -177,6 +177,12 @@ const userPosts = async (req, res) => {
     const connection = await db.getConnection();
     try {
         const { userId } = req.params;
+
+        const exist = await User.findById(userId, connection);
+        if (!exist) {
+            return res.status(404).json(Response.error(404, "User not found"));
+        }
+
         if (!userId || isNaN(userId)) {
             return res.status(400).json(Response.error(400, "Invalid user ID"));
         }
@@ -202,6 +208,15 @@ const createPost = async (req, res) => {
         const file = req.file;
         let secure_url = null;
 
+        const exist = await User.findById(user_id, connection);
+        if (!exist) {
+            await connection.rollback();
+            return res.status(404).json(Response.error(404, "User not found"));
+        }
+
+        // xss protection for text content
+        const sanitizedTextContent = text_content ? text_content.replace(/</g, "&lt;").replace(/>/g, "&gt;") : null;
+
         // Upload file to Cloudinary if provided
         if (file) {
             try {
@@ -218,14 +233,14 @@ const createPost = async (req, res) => {
         }
 
         // Validate that at least text or media is provided
-        if (!text_content && !secure_url) {
+        if (!sanitizedTextContent && !secure_url) {
             await connection.rollback();
             return res.status(400).json(Response.error(400, "Post must contain text or media"));
         }
 
         const postData = {
             user_id,
-            text_content: text_content || null,
+            text_content: sanitizedTextContent || null,
             media_url: secure_url || null
         };
 
@@ -242,4 +257,35 @@ const createPost = async (req, res) => {
     }
 }
 
-export { addUserSport, updateUserDetails, userProfile, deleteUserSport, userPosts, createPost };
+const deletePost = async (req, res) => {
+    const connection = await db.getConnection();
+    try {
+        await connection.beginTransaction();
+        const { postId, userId } = req.params;
+
+        const existingPost = await Post.findById(postId, connection);
+        if (!existingPost) {
+            await connection.rollback();
+            return res.status(404).json(Response.error(404, "Post not found"));
+        }
+
+        // Check if the post belongs to the user
+        if (existingPost.user_id !== parseInt(userId)) {
+            await connection.rollback();
+            return res.status(403).json(Response.error(403, "You are not authorized to delete this post"));
+        }
+
+        await Post.deleteById(postId, connection);
+
+        await connection.commit();
+        res.status(200).json(Response.success(200, "Post deleted successfully"));
+    } catch (error) {
+        await connection.rollback();
+        console.error("Error deleting post:", error);
+        res.status(500).json(Response.error(500, "Internal Server Error"));
+    } finally {
+        connection.release();
+    }
+}
+
+export { addUserSport, updateUserDetails, userProfile, deleteUserSport, userPosts, createPost, deletePost };
