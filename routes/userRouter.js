@@ -1,5 +1,5 @@
 import express from 'express';
-import { addUserSport, createPost, deleteUserSport, updateUserDetails, userPosts, userProfile } from '../controllers/userController.js';
+import { addUserSport, createPost, deletePost, deleteUserSport, updateUserDetails, userPosts, userProfile } from '../controllers/userController.js';
 import { handleValidationErrors } from '../middleware/validation.js';
 import upload from '../middleware/multer.js';
 import { verifyToken } from '../middleware/authUser.js';
@@ -45,5 +45,14 @@ userRouter.post('/createPost/:userId', upload.single('media_url'), verifyToken, 
     // #swagger.description = 'Create a new post'
     createPost(req, res);
 });
+
+userRouter.delete('/deletePost/:postId', verifyToken, (req, res) => {
+    // #swagger.tags = ['User']
+    // #swagger.description = 'Delete a post by ID'
+    // Implementation of deletePost function is assumed to be present
+    deletePost(req, res);
+});
+
+
 
 export default userRouter;

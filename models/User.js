@@ -155,10 +155,10 @@ class User {
                     s.sport_name,
                     us.skill_level,
                     u.created_at
-                FROM playmate2.users u
-                LEFT JOIN playmate2.user_sports us 
+                FROM users u
+                LEFT JOIN user_sports us 
                     ON u.user_id = us.user_id
-                LEFT JOIN playmate2.sports s 
+                LEFT JOIN sports s 
                     ON us.sport_id = s.sport_id`);
             return rows;
         } catch (error) {
