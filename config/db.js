@@ -9,7 +9,7 @@ const dbConfig = {
     waitForConnections: true,
     // Provider cap is 5 concurrent connections; keep pool below that to avoid ER_USER_LIMIT_REACHED
     connectionLimit: 3,
-    queueLimit: 0
+    queueLimit: 0,
 };
 
 // Create connection pool
