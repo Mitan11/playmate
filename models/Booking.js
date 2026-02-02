@@ -27,6 +27,10 @@ class Booking {
 				end_datetime DATETIME NOT NULL,
 				total_price DECIMAL(10,2) CHECK (total_price >= 0),
 				created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+				payment ENUM('unpaid', 'paid') DEFAULT 'unpaid',
+				INDEX idx_booking_venue (venue_id),
+				INDEX idx_booking_user (user_id),
+				INDEX idx_booking_game (game_id),
 				CONSTRAINT fk_booking_slot FOREIGN KEY (slot_id)
 					REFERENCES slots(slot_id)
 					ON DELETE SET NULL ON UPDATE CASCADE,

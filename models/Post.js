@@ -20,7 +20,7 @@ class Post {
             CREATE TABLE IF NOT EXISTS posts (
                 post_id INT AUTO_INCREMENT PRIMARY KEY,
                 user_id INT NOT NULL,
-                text_content TEXT NOT NULL,
+                text_content TEXT NULL,
                 media_url VARCHAR(255) DEFAULT '',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 INDEX idx_user_id (user_id),

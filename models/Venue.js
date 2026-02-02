@@ -64,7 +64,7 @@ class Venue {
         if (!updates || typeof updates !== 'object') {
             return false;
         }
-        
+
         const fields = [];
         const params = [];
         if (updates.first_name !== undefined) { fields.push('first_name = ?'); params.push(updates.first_name); }
@@ -99,13 +99,13 @@ LEFT JOIN sports s
     ON vs.sport_id = s.sport_id
 ORDER BY v.venue_id, s.sport_name;
 `);
-        
+
         // Group venues by venue_id and aggregate sports
         const venuesMap = new Map();
-        
+
         rows.forEach(row => {
             const venueId = row.venue_id;
-            
+
             if (!venuesMap.has(venueId)) {
                 venuesMap.set(venueId, {
                     venue_id: row.venue_id,
@@ -120,7 +120,7 @@ ORDER BY v.venue_id, s.sport_name;
                     sports: []
                 });
             }
-            
+
             // Add sport information if it exists
             if (row.sport_name) {
                 venuesMap.get(venueId).sports.push({
@@ -130,14 +130,97 @@ ORDER BY v.venue_id, s.sport_name;
                 });
             }
         });
-        
+
         return Array.from(venuesMap.values());
     }
 
+    static async listAll(conn = db) {
+        const query = `
+        SELECT 
+    v.venue_id,
+    v.email,
+    v.venue_name,
+    v.address,
+    vi.image_url,
+    s.sport_name,
+    MIN(sl.price_per_slot) AS min_price
+FROM venues v
+LEFT JOIN venue_sports vs 
+    ON v.venue_id = vs.venue_id
+LEFT JOIN sports s 
+    ON vs.sport_id = s.sport_id
+LEFT JOIN venue_images vi
+    ON vi.venue_id = v.venue_id
+LEFT JOIN slots sl 
+    ON vs.venue_sport_id = sl.venue_sport_id
+GROUP BY
+    v.venue_id,
+    v.email,
+    v.venue_name,
+    v.address,
+    vi.image_url,
+    s.sport_name
+ORDER BY 
+    v.venue_id,
+    s.sport_name;
+
+        `
+
+        const [rows] = await conn.execute(query);
+
+        const venuesMap = new Map();
+
+        rows.forEach(row => {
+            const venueId = row.venue_id;
+
+            if (!venuesMap.has(venueId)) {
+                venuesMap.set(venueId, {
+                    venue_id: row.venue_id,
+                    email: row.email,
+                    first_name: row.first_name,
+                    last_name: row.last_name,
+                    phone: row.phone,
+                    venue_name: row.venue_name,
+                    address: row.address,
+                    profile_image: row.profile_image,
+                    created_at: row.venue_created_at,
+                    min_price: null,
+                    sports: [],
+                    images: []
+                });
+            }
+
+            if (row.sport_name) {
+                const sports = venuesMap.get(venueId).sports;
+                if (!sports.some(s => s.sport_name === row.sport_name)) {
+                    sports.push({
+                        sport_name: row.sport_name,
+                        price_per_hour: row.sport_price,
+                        sport_added_at: row.sport_added_at
+                    });
+                }
+            }
+
+            if (row.image_url) {
+                const images = venuesMap.get(venueId).images;
+                if (!images.includes(row.image_url)) {
+                    images.push(row.image_url);
+                }
+            }
+
+            if (row.min_price && (venuesMap.get(venueId).min_price === null || row.min_price < venuesMap.get(venueId).min_price)) {
+                venuesMap.get(venueId).min_price = row.min_price;
+            }
+
+        });
+
+            return Array.from(venuesMap.values());
+        }
+
     static async deleteById(id, conn = db) {
-        const [res] = await conn.execute('DELETE FROM venues WHERE venue_id = ?', [id]);
-        return res.affectedRows > 0;
-    }
+            const [res] = await conn.execute('DELETE FROM venues WHERE venue_id = ?', [id]);
+            return res.affectedRows > 0;
+        }
 }
 
 export default Venue;

@@ -29,7 +29,8 @@ import {
     paymentStatusUpdate,
     venueIamgeUpload,
     getVenueImages,
-    deleteVenueImage
+    deleteVenueImage,
+    allVenus
 } from '../controllers/venueController.js';
 import { venueVerifyToken } from '../middleware/authUser.js';
 import upload from '../middleware/multer.js';
@@ -248,6 +249,12 @@ venueRouter.post('/slots', venueVerifyToken, (req, res) => {
     // #swagger.tags = ['Venue']
     // #swagger.description = 'Add a new slot'
     addNewSlot(req, res);
+});
+
+venueRouter.get('/allVenues', venueVerifyToken, (req, res) => {
+    // #swagger.tags = ['Venue']
+    // #swagger.description = 'Get all venues'
+    allVenus(req, res);
 });
 
 export default venueRouter;

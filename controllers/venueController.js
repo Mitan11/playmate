@@ -908,6 +908,22 @@ const paymentStatusUpdate = async (req, res) => {
     }
 }
 
+const allVenus = async (req, res) => {
+    const connection = await db.getConnection();
+    try {
+        await connection.beginTransaction();
+        const venues = await Venue.listAll(connection);
+        await connection.commit();
+        res.status(200).json(Response.success(200, "All venues fetched successfully", venues));
+    }catch (error) {
+        await connection.rollback();
+        console.error("Error fetching all venues:", error);
+        res.status(500).json(Response.error(500, "Internal Server Error"));
+    }finally {
+        connection.release();
+    }
+}
+
 export {
     registerVenue,
     venueLogin,
@@ -938,5 +954,6 @@ export {
     venueBookings,
     deleteBooking,
     deactiveBooking,
-    paymentStatusUpdate
+    paymentStatusUpdate,
+    allVenus
 };
