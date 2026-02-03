@@ -66,7 +66,7 @@ userRouter.get('/getPostLikes/:postId', verifyToken, (req, res) => {
     getPostLikes(req, res);
 });
 
-userRouter.get('/recentActivities/:userId',  (req, res) => {
+userRouter.get('/recentActivities/:userId', verifyToken, (req, res) => {
     // #swagger.tags = ['User']
     // #swagger.description = 'Get recent activities for a user by ID'
     // Implementation of recentActivities function is assumed to be present

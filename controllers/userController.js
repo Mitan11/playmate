@@ -186,9 +186,15 @@ const userPosts = async (req, res) => {
         if (!userId || isNaN(userId)) {
             return res.status(400).json(Response.error(400, "Invalid user ID"));
         }
-        const posts = await Post.getUserPosts(userId, connection);
-
-        res.status(200).json(Response.success(200, "User posts retrieved successfully", { posts }));
+        const posts = await Post.getPostsByUserId(userId, connection);
+        const isLiked = await Promise.all(posts.map(async (post) => {
+            const liked = await Post.isPostLikedByUser(post.post_id, userId, connection);
+            return {
+                ...post,
+                is_liked_by_user: liked
+            };
+        }));
+        res.status(200).json(Response.success(200, "User posts retrieved successfully", { posts: isLiked }));
     } catch (error) {
         await connection.rollback();
         console.error("Error fetching user posts:", error);
@@ -294,7 +300,7 @@ const toggleLike = async (req, res) => {
         await connection.beginTransaction();
 
         const { postId, userId } = req.params;
-        console.log("Toggling like for postId:", postId, "by userId:", userId);
+
         // Validate IDs
         if (!postId || isNaN(postId)) {
             await connection.rollback();
@@ -329,7 +335,6 @@ const toggleLike = async (req, res) => {
 
         // Get updated like count
         const likeCount = await Post.getLikeCount(postId, connection);
-console.log("Updated like count:", likeCount, "isLiked:", !isLiked , "message:", message);
         await connection.commit();
         res.status(200).json(Response.success(200, message, {
             like_count: likeCount,
