@@ -288,4 +288,158 @@ const deletePost = async (req, res) => {
     }
 }
 
-export { addUserSport, updateUserDetails, userProfile, deleteUserSport, userPosts, createPost, deletePost };
+const toggleLike = async (req, res) => {
+    const connection = await db.getConnection();
+    try {
+        await connection.beginTransaction();
+
+        const { postId, userId } = req.params;
+        console.log("Toggling like for postId:", postId, "by userId:", userId);
+        // Validate IDs
+        if (!postId || isNaN(postId)) {
+            await connection.rollback();
+            return res.status(400).json(Response.error(400, "Invalid post ID"));
+        }
+
+        if (!userId || isNaN(userId)) {
+            await connection.rollback();
+            return res.status(400).json(Response.error(400, "Invalid user ID"));
+        }
+
+        // Check if post exists
+        const existingPost = await Post.findById(postId, connection);
+        if (!existingPost) {
+            await connection.rollback();
+            return res.status(404).json(Response.error(404, "Post not found"));
+        }
+
+        // Check if user already liked the post
+        const isLiked = await Post.isPostLikedByUser(postId, userId, connection);
+
+        let message;
+        if (isLiked) {
+            // Unlike the post
+            await Post.unlikePost(postId, userId, connection);
+            message = "Post unliked successfully";
+        } else {
+            // Like the post
+            await Post.likePost(postId, userId, connection);
+            message = "Post liked successfully";
+        }
+
+        // Get updated like count
+        const likeCount = await Post.getLikeCount(postId, connection);
+console.log("Updated like count:", likeCount, "isLiked:", !isLiked , "message:", message);
+        await connection.commit();
+        res.status(200).json(Response.success(200, message, {
+            like_count: likeCount,
+            is_liked: !isLiked
+        }));
+    } catch (error) {
+        await connection.rollback();
+        console.error("Error toggling like:", error);
+        res.status(500).json(Response.error(500, "Internal Server Error"));
+    } finally {
+        connection.release();
+    }
+}
+
+const getPostLikes = async (req, res) => {
+    const connection = await db.getConnection();
+    try {
+        const { postId } = req.params;
+        // Validate post ID
+        if (!postId || isNaN(postId)) {
+            return res.status(400).json(Response.error(400, "Invalid post ID"));
+        }
+
+        // Check if post exists
+        const existingPost = await Post.findById(postId, connection);
+        if (!existingPost) {
+            return res.status(404).json(Response.error(404, "Post not found"));
+        }
+
+        // Get users who liked the post
+        const likers = await Post.getPostLikers(postId, connection);
+
+        res.status(200).json(Response.success(200, "Post likes retrieved successfully", {
+            post_id: postId,
+            like_count: likers.length,
+            likers
+        }));
+    } catch (error) {
+        console.error("Error fetching post likes:", error);
+        res.status(500).json(Response.error(500, "Internal Server Error"));
+    } finally {
+        connection.release();
+    }
+}
+
+const recentActivity = async (req, res) => {
+    const connection = await db.getConnection();
+    try {
+        const { userId } = req.params;
+        const { page = 1, limit = 10 } = req.query;
+        // Validate user ID
+        if (!userId || isNaN(userId)) {
+            return res.status(400).json(Response.error(400, "Invalid user ID"));
+        }
+
+        // Validate pagination parameters
+        const pageNum = parseInt(page);
+        const limitNum = parseInt(limit);
+
+        if (pageNum < 1 || limitNum < 1 || limitNum > 50) {
+            return res.status(400).json(Response.error(400, "Invalid pagination parameters"));
+        }
+
+        // Check if user exists
+        const userExists = await User.findById(userId, connection);
+        if (!userExists) {
+            return res.status(404).json(Response.error(404, "User not found"));
+        }
+
+        // Get recent posts with pagination
+        const posts = await Post.getPostsWithPagination(pageNum, limitNum, connection);
+
+        // For each post, check if the current user has liked it
+        const postsWithLikeStatus = await Promise.all(posts.map(async (post) => {
+            const isLiked = await Post.isPostLikedByUser(post.post_id, userId, connection);
+            return {
+                post_id: post.post_id,
+                user_id: post.user_id,
+                first_name: post.first_name,
+                last_name: post.last_name,
+                profile_image: post.profile_image,
+                text_content: post.text_content,
+                media_url: post.media_url,
+                created_at: post.created_at,
+                like_count: post.like_count,
+                is_liked_by_user: isLiked
+            };
+        }));
+
+        // Get total count for pagination metadata
+        const totalPosts = await Post.getTotalPostsCount(connection);
+        const totalPages = Math.ceil(totalPosts / limitNum);
+
+        res.status(200).json(Response.success(200, "Recent activity retrieved successfully", {
+            posts: postsWithLikeStatus,
+            pagination: {
+                current_page: pageNum,
+                total_pages: totalPages,
+                total_posts: totalPosts,
+                posts_per_page: limitNum,
+                has_next: pageNum < totalPages,
+                has_previous: pageNum > 1
+            }
+        }));
+    } catch (error) {
+        console.error("Error fetching recent activity:", error);
+        res.status(500).json(Response.error(500, "Internal Server Error"));
+    } finally {
+        connection.release();
+    }
+}
+
+export { addUserSport, updateUserDetails, userProfile, deleteUserSport, userPosts, createPost, deletePost, toggleLike, getPostLikes, recentActivity };

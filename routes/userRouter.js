@@ -1,5 +1,5 @@
 import express from 'express';
-import { addUserSport, createPost, deletePost, deleteUserSport, updateUserDetails, userPosts, userProfile } from '../controllers/userController.js';
+import { addUserSport, createPost, deletePost, deleteUserSport, getPostLikes, recentActivity, toggleLike, updateUserDetails, userPosts, userProfile } from '../controllers/userController.js';
 import { handleValidationErrors } from '../middleware/validation.js';
 import upload from '../middleware/multer.js';
 import { verifyToken } from '../middleware/authUser.js';
@@ -46,13 +46,31 @@ userRouter.post('/createPost/:userId', upload.single('media_url'), verifyToken, 
     createPost(req, res);
 });
 
-userRouter.delete('/deletePost/:postId', verifyToken, (req, res) => {
+userRouter.delete('/deletePost/:postId/:userId', verifyToken, (req, res) => {
     // #swagger.tags = ['User']
     // #swagger.description = 'Delete a post by ID'
     // Implementation of deletePost function is assumed to be present
     deletePost(req, res);
 });
 
+userRouter.post('/toggle/:postId/:userId', verifyToken, (req, res) => {
+    // #swagger.tags = ['User']
+    // #swagger.description = 'Toggle a post by ID'
+    toggleLike(req, res);
+});
 
+userRouter.get('/getPostLikes/:postId', verifyToken, (req, res) => {
+    // #swagger.tags = ['User']
+    // #swagger.description = 'Get likes for a post by ID'
+    // Implementation of getPostLikes function is assumed to be present
+    getPostLikes(req, res);
+});
+
+userRouter.get('/recentActivities/:userId',  (req, res) => {
+    // #swagger.tags = ['User']
+    // #swagger.description = 'Get recent activities for a user by ID'
+    // Implementation of recentActivities function is assumed to be present
+    recentActivity(req, res);
+});
 
 export default userRouter;
