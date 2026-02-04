@@ -32,7 +32,7 @@ import {
     deleteVenueImage,
     allVenus
 } from '../controllers/venueController.js';
-import { venueVerifyToken } from '../middleware/authUser.js';
+import { venueVerifyToken, verifyToken } from '../middleware/authUser.js';
 import upload from '../middleware/multer.js';
 import { getAllSports } from '../controllers/adminControllers.js';
 import { addNewSlot, deleteSlot, editSlot, getAllSlotsOfVenue } from '../controllers/slotController.js';
@@ -251,7 +251,7 @@ venueRouter.post('/slots', venueVerifyToken, (req, res) => {
     addNewSlot(req, res);
 });
 
-venueRouter.get('/allVenues', venueVerifyToken, (req, res) => {
+venueRouter.get('/allVenues', verifyToken, (req, res) => {
     // #swagger.tags = ['Venue']
     // #swagger.description = 'Get all venues'
     allVenus(req, res);
