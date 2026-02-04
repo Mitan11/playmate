@@ -61,10 +61,8 @@ const register = async (req, res) => {
 
         // Save new user to database using static method
         const result = await User.save(userData, connection);
-
         //  generate auth token
-        const token = await AuthHelpers.generateToken(result);
-
+        const token = await AuthHelpers.generateToken(result[0]);
         // Send welcome email
         console.log("Sending welcome email to:", user_email);
         const html = playmateWelcomeTemplate({ name: first_name });
@@ -280,7 +278,7 @@ const resetPassword = async (req, res) => {
 
 const changePassword = async (req, res) => {
     try {
-        const { currentPassword, newPassword  } = req.body;
+        const { currentPassword, newPassword } = req.body;
         const user_email = req.user[0].user_email; // Get email from JWT token
 
         // Find user by email

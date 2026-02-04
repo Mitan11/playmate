@@ -64,9 +64,9 @@ class User {
                 query,
                 params
             );
-
             // Return the created user
-            return await User.findById(result.insertId, conn);
+            const user = await User.findById(result.insertId, conn);
+            return user;
         } catch (error) {
             console.error('Error creating user:', error);
             throw error;
