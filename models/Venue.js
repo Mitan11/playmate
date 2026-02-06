@@ -55,8 +55,50 @@ class Venue {
     }
 
     static async findByEmail(email, conn = db) {
-        const [rows] = await conn.execute('SELECT * FROM venues WHERE email = ?', [email]);
-        return rows.length ? new Venue(rows[0]) : null;
+        const [rows] = await conn.execute(`
+            SELECT 
+                v.venue_id,
+                v.email,
+                v.first_name,
+                v.last_name,
+                v.password,
+                v.phone,
+                v.venue_name,
+                v.address,
+                v.profile_image,
+                v.created_at,
+                vi.image_url
+            FROM venues v
+            LEFT JOIN venue_images vi
+                ON v.venue_id = vi.venue_id
+            WHERE v.email = ?;
+            `, [email]);
+
+        if (!rows.length) {
+            return null;
+        }
+        console.log("Venue found by email:", rows[0]);
+        const venueDetails = {
+            venue_id: rows[0].venue_id,
+            email: rows[0].email,
+            first_name: rows[0].first_name,
+            last_name: rows[0].last_name,
+            password: rows[0].password,
+            phone: rows[0].phone,
+            venue_name: rows[0].venue_name,
+            address: rows[0].address,
+            profile_image: rows[0].profile_image,
+            created_at: rows[0].created_at,
+            images: []
+        };
+
+        rows.forEach(row => {
+            if (row.image_url) {
+                venueDetails.images.push(row.image_url);
+            }
+        });
+
+        return venueDetails;
     }
 
     static async updateProfile(id, updates, conn = db) {
@@ -189,7 +231,7 @@ ORDER BY
                     min_price: null,
                     sports: [],
                     images: []
-            });
+                });
             }
 
             if (row.sport_name && row.sport_id !== null && row.sport_id !== undefined) {
@@ -217,13 +259,13 @@ ORDER BY
 
         });
 
-            return Array.from(venuesMap.values());
-        }
+        return Array.from(venuesMap.values());
+    }
 
     static async deleteById(id, conn = db) {
-            const [res] = await conn.execute('DELETE FROM venues WHERE venue_id = ?', [id]);
-            return res.affectedRows > 0;
-        }
+        const [res] = await conn.execute('DELETE FROM venues WHERE venue_id = ?', [id]);
+        return res.affectedRows > 0;
+    }
 }
 
 export default Venue;
