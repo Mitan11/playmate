@@ -2,7 +2,7 @@ import Venue from "../models/Venue.js";
 import Response from "../utils/Response.js";
 import db from "../config/db.js";
 import AuthHelpers from "../utils/AuthHelpers.js";
-import { playmateWelcomeTemplate, venueOwnerWelcomeTemplate } from "../utils/emailTemplates.js";
+import { venueOwnerWelcomeTemplate } from "../utils/emailTemplates.js";
 import { sendWelcomeEmail } from "../utils/Mail.js";
 import { v2 as cloudinary } from 'cloudinary'
 import VenueSport from "../models/VenueSport.js";
@@ -915,11 +915,11 @@ const allVenus = async (req, res) => {
         const venues = await Venue.listAll(connection);
         await connection.commit();
         res.status(200).json(Response.success(200, "All venues fetched successfully", venues));
-    }catch (error) {
+    } catch (error) {
         await connection.rollback();
         console.error("Error fetching all venues:", error);
         res.status(500).json(Response.error(500, "Internal Server Error"));
-    }finally {
+    } finally {
         connection.release();
     }
 }
