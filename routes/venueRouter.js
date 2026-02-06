@@ -35,7 +35,7 @@ import {
 import { venueVerifyToken, verifyToken } from '../middleware/authUser.js';
 import upload from '../middleware/multer.js';
 import { getAllSports } from '../controllers/adminControllers.js';
-import { addNewSlot, deleteSlot, editSlot, getAllSlotsOfVenue } from '../controllers/slotController.js';
+import { addNewSlot, deleteSlot, editSlot, getAllSlotsOfVenue, getAvailableSlotsByVenueAndDate } from '../controllers/slotController.js';
 
 const venueRouter = express.Router();
 
@@ -233,6 +233,12 @@ venueRouter.get('/allVenueSlots/:venueId', venueVerifyToken, (req, res) => {
     getAllSlotsOfVenue(req, res);
 });
 
+venueRouter.get('/slots/available/:venueId', (req, res) => {
+    // #swagger.tags = ['Venue']
+    // #swagger.description = 'Get available slots for a venue by date (YYYY-MM-DD)'
+    getAvailableSlotsByVenueAndDate(req, res);
+});
+
 venueRouter.delete('/slots/:slotId', venueVerifyToken, (req, res) => {
     // #swagger.tags = ['Venue']
     // #swagger.description = 'Delete a slot by ID'
@@ -251,7 +257,7 @@ venueRouter.post('/slots', venueVerifyToken, (req, res) => {
     addNewSlot(req, res);
 });
 
-venueRouter.get('/allVenues', verifyToken, (req, res) => {
+venueRouter.get('/allVenues',  (req, res) => {
     // #swagger.tags = ['Venue']
     // #swagger.description = 'Get all venues'
     allVenus(req, res);
