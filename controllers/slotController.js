@@ -1,7 +1,38 @@
-import e from "express";
 import db from "../config/db.js";
 import Slot from "../models/Slot.js";
 import Response from "../utils/Response.js";
+
+const getAvailableSlotsByVenueAndDate = async (req, res) => {
+    const connection = await db.getConnection();
+    try {
+        connection.beginTransaction();
+        const { venueId } = req.params;
+        let { date , sportId } = req.query;
+        
+        date = date ? new Date(date) : null;
+
+        if (!venueId || isNaN(venueId)) {
+            await connection.rollback();
+            return res.status(400).json(Response.error(400, "Invalid venue ID"));
+        }
+
+        if (!date) {
+            await connection.rollback();
+            return res.status(400).json(Response.error(400, "date is required (YYYY-MM-DD)"));
+        }
+
+        const rows = await Slot.getAvailableSlotsByVenueAndDate(venueId, date, sportId, connection);
+
+        await connection.commit();
+        res.status(200).json(Response.success(200, "Available slots fetched successfully", rows));
+    } catch (error) {
+        await connection.rollback();
+        console.error("Error fetching available slots:", error);
+        res.status(500).json(Response.error(500, "Internal server error"));
+    } finally {
+        connection.release();
+    }
+};
 
 const getAllSlotsOfVenue = async (req, res) => {
     const connection = await db.getConnection();
@@ -83,4 +114,4 @@ const addNewSlot = async (req, res) => {
     }
 };
 
-export { getAllSlotsOfVenue, deleteSlot, editSlot, addNewSlot };
+export { getAllSlotsOfVenue, deleteSlot, editSlot, addNewSlot, getAvailableSlotsByVenueAndDate };

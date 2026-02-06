@@ -165,6 +165,48 @@ class Slot {
         }
     }
 
+
+    static async getAvailableSlotsByVenueAndDate(venueId, date, sportId, conn = db) {
+        try {
+            const [rows] = await conn.query(
+                `
+            SELECT 
+    v.venue_id,
+    v.venue_name,
+    s.sport_id,
+    s.sport_name,
+    ? AS selected_date,
+
+    sl.slot_id,
+    sl.start_time,
+    sl.end_time,
+    sl.price_per_slot
+FROM slots sl
+JOIN venue_sports vs
+    ON sl.venue_sport_id = vs.venue_sport_id
+JOIN venues v
+    ON vs.venue_id = v.venue_id
+JOIN sports s
+    ON vs.sport_id = s.sport_id
+LEFT JOIN bookings b
+    ON sl.slot_id = b.slot_id
+   AND DATE(b.start_datetime) = ?
+WHERE v.venue_id = ?
+  AND s.sport_id = ?
+  AND b.slot_id IS NULL
+ORDER BY sl.start_time;
+            `,
+                [date, date, venueId, sportId]
+            );
+
+            return rows;
+        }
+        catch (error) {
+            console.error('Error fetching available slots by venue and date:', error);
+            throw error;
+        }
+    }
+
 }
 
 export default Slot;

@@ -90,6 +90,7 @@ class Venue {
     v.address,
     v.profile_image,
     v.created_at AS venue_created_at,
+    s.sport_id,
     s.sport_name,
     vs.created_at AS sport_added_at
 FROM venues v
@@ -143,6 +144,7 @@ ORDER BY v.venue_id, s.sport_name;
     v.address,
     vi.image_url,
     s.sport_name,
+    s.sport_id,
     MIN(sl.price_per_slot) AS min_price
 FROM venues v
 LEFT JOIN venue_sports vs 
@@ -187,13 +189,14 @@ ORDER BY
                     min_price: null,
                     sports: [],
                     images: []
-                });
+            });
             }
 
-            if (row.sport_name) {
+            if (row.sport_name && row.sport_id !== null && row.sport_id !== undefined) {
                 const sports = venuesMap.get(venueId).sports;
-                if (!sports.some(s => s.sport_name === row.sport_name)) {
+                if (!sports.some(s => s.sport_id === row.sport_id)) {
                     sports.push({
+                        sport_id: row.sport_id,
                         sport_name: row.sport_name,
                         price_per_hour: row.sport_price,
                         sport_added_at: row.sport_added_at
