@@ -77,7 +77,7 @@ class Venue {
         if (!rows.length) {
             return null;
         }
-        console.log("Venue found by email:", rows[0]);
+
         const venueDetails = {
             venue_id: rows[0].venue_id,
             email: rows[0].email,
