@@ -3,6 +3,7 @@ import { addUserSport, createPost, deletePost, deleteUserSport, getPostLikes, re
 import { handleValidationErrors } from '../middleware/validation.js';
 import upload from '../middleware/multer.js';
 import { verifyToken } from '../middleware/authUser.js';
+import venueBokking from '../controllers/bookingController.js';
 
 const userRouter = express.Router();
 
@@ -71,6 +72,12 @@ userRouter.get('/recentActivities/:userId', verifyToken, (req, res) => {
     // #swagger.description = 'Get recent activities for a user by ID'
     // Implementation of recentActivities function is assumed to be present
     recentActivity(req, res);
+});
+
+userRouter.post('/venueBooking', verifyToken, (req, res) => {
+    // #swagger.tags = ['User']
+    // #swagger.description = 'Book a venue slot'
+    venueBokking(req, res);
 });
 
 export default userRouter;

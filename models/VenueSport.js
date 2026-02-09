@@ -74,6 +74,15 @@ class VenueSport {
         return rows.map(r => new VenueSport(r));
     }
 
+    static async getSportByvalue(sportName, conn = db) {
+        const [rows] = await conn.execute(`
+            SELECT * FROM venue_sports vs
+            left join sports s on vs.sport_id = s.sport_id
+            WHERE s.sport_name = ?
+            `, [sportName]);
+        return rows.length ? rows[0].venue_sport_id : null;
+    }
+
     static async getVenueSports(venueId, conn = db) {
         const [rows] = await conn.execute(
             `SELECT 
