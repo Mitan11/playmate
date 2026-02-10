@@ -12,7 +12,7 @@ const venueBooking = async (req, res) => {
         connection = await db.getConnection();
         await connection.beginTransaction();
         transactionStarted = true;
-        const { sport_id, venue_id, start_datetime, end_datetime, host_id, price, slot_id } = req.body;
+        const { sport_id, venue_id, start_datetime, end_datetime, host_id, price, slot_id, payment } = req.body;
 
         if (!sport_id || !venue_id || !start_datetime || !end_datetime || !host_id || !price || !slot_id) {
             if (transactionStarted) await connection.rollback();
@@ -58,7 +58,8 @@ const venueBooking = async (req, res) => {
             game_id: game.game_id,
             start_datetime,
             end_datetime,
-            total_price: price
+            total_price: price,
+            payment
         };
 
         const booking = await Booking.save(bookingData, connection);
@@ -98,7 +99,9 @@ const allCreatedGames = async (req, res) => {
         ) AS total_joined_player
         from games g
         left join sports as s on s.sport_id = g.sport_id
-        left join venues as v on v.venue_id = g.venue_id`
+        left join venues as v on v.venue_id = g.venue_id
+        order by g.created_at desc;
+        `
 
         const [rows] = await connection.query(query);
 
@@ -117,7 +120,6 @@ const userJoinedGames = async (req, res) => {
     const connection = await db.getConnection();
     try {
         const userId = req.user?.[0]?.user_id || req.params.userId || req.body.user_id;
-
         if (!userId) {
             await connection.release();
             return res.status(400).json(Response.error(400, "user_id is required"));
@@ -214,7 +216,7 @@ LEFT JOIN game_players gp
     ON g.game_id = gp.game_id
    AND gp.status = 'Approved'
 
-WHERE g.host_user_id =  20
+WHERE g.host_user_id =  ?
 GROUP BY
     g.game_id,
     g.start_datetime,
@@ -239,7 +241,7 @@ ORDER BY g.created_at DESC;
     }
 }
 
-export default {
+export {
     venueBooking,
     allCreatedGames,
     userJoinedGames,
