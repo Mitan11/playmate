@@ -37,6 +37,19 @@ const venueBooking = async (req, res) => {
             return res.status(400).json(Response.error(400, "Sport not available at this venue"));
         }
 
+        // Check if slot is already booked for the given time
+        const existingBooking = await Booking.findOne({
+            slot_id,
+            venue_id,
+            start_datetime,
+            end_datetime
+        }, connection);
+
+        if (existingBooking) {
+            if (transactionStarted) await connection.rollback();
+            return res.status(409).json(Response.error(409, "Slot is already booked for the selected time"));
+        }
+
         const bookingData = {
             slot_id,
             venue_id,
