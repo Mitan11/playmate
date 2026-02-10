@@ -3,7 +3,7 @@ import { addUserSport, createPost, deletePost, deleteUserSport, getPostLikes, re
 import { handleValidationErrors } from '../middleware/validation.js';
 import upload from '../middleware/multer.js';
 import { verifyToken } from '../middleware/authUser.js';
-import venueBooking from '../controllers/bookingController.js';
+import {venueBooking, allCreatedGames, userJoinedGames } from '../controllers/bookingController.js';
 
 const userRouter = express.Router();
 
@@ -78,6 +78,24 @@ userRouter.post('/venueBooking', verifyToken, (req, res) => {
     // #swagger.tags = ['User']
     // #swagger.description = 'Book a venue slot'
     venueBooking(req, res);
+});
+
+userRouter.get('/allGames', verifyToken, (req, res) => {
+    // #swagger.tags = ['User']
+    // #swagger.description = 'Get all games for a user by ID'
+    allCreatedGames(req, res);
+});
+
+userRouter.get('/joinedGames', verifyToken, (req, res) => {
+    // #swagger.tags = ['User']
+    // #swagger.description = 'Get all joined games for a user by ID'
+    userJoinedGames(req, res);
+});
+
+userRouter.get('/usersCreatedGames', verifyToken, (req, res) => {
+    // #swagger.tags = ['User']
+    // #swagger.description = 'Get all games created by a user by ID'
+    allCreatedGames(req, res);
 });
 
 export default userRouter;
