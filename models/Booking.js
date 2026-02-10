@@ -75,7 +75,7 @@ class Booking {
 			[slot_id, venue_id, venue_sport_id, user_id, game_id, start_datetime, end_datetime, total_price]
 		);
 		return await Booking.findById(result.insertId, conn);
-	}
+	}	
 
 	static async findById(id, conn = db) {
 		const [rows] = await conn.execute('SELECT * FROM bookings WHERE booking_id = ?', [id]);
