@@ -168,25 +168,27 @@ class Slot {
 
     static async getAvailableSlotsByVenueAndDate(venueId, date, sportId, conn = db) {
         try {
+            date = new Date(date);
+            date = date.toISOString().split('T')[0];
             const [rows] = await conn.query(
                 `
             SELECT 
-    v.venue_id,
-    v.venue_name,
-    s.sport_id,
-    s.sport_name,
-    ? AS selected_date,
-
-    sl.slot_id,
-    sl.start_time,
-    sl.end_time,
-    sl.price_per_slot
-FROM slots sl
-JOIN venue_sports vs
+                v.venue_id,
+                v.venue_name,
+                s.sport_id,
+                s.sport_name,
+                ? AS selected_date,
+                sl.slot_id,
+                sl.start_time,
+                sl.end_time,
+                sl.price_per_slot,
+                CASE WHEN b.slot_id IS NULL THEN 'available' ELSE 'booked' END AS slot_status
+            FROM slots sl
+left JOIN venue_sports vs
     ON sl.venue_sport_id = vs.venue_sport_id
-JOIN venues v
+left JOIN venues v
     ON vs.venue_id = v.venue_id
-JOIN sports s
+left JOIN sports s
     ON vs.sport_id = s.sport_id
 LEFT JOIN bookings b
     ON sl.slot_id = b.slot_id
@@ -202,7 +204,7 @@ ORDER BY sl.start_time;
             return rows;
         }
         catch (error) {
-            console.error('Error fetching available slots by venue and date:', error);
+            console.error('Error fetching slots by venue and date:', error);
             throw error;
         }
     }

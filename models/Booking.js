@@ -138,6 +138,16 @@ class Booking {
 		);
 		return result.affectedRows > 0;
 	}
+
+	static async findOne(criteria, conn = db) {
+		const { slot_id, venue_id, start_datetime, end_datetime } = criteria;
+		const [rows] = await conn.execute(
+			`SELECT * FROM bookings WHERE slot_id = ? AND venue_id = ? AND start_datetime < ? AND end_datetime > ?`,
+			[slot_id, venue_id, end_datetime, start_datetime]
+		);
+		return rows.length ? new Booking(rows[0]) : null;
+	}
+
 }
 
 export default Booking;
