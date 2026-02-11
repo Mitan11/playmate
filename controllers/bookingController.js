@@ -2,8 +2,57 @@ import db from "../config/db.js";
 import Booking from "../models/Booking.js";
 import Games from "../models/Games.js";
 import Sport from "../models/Sport.js";
+import User from "../models/User.js";
+import Venue from "../models/Venue.js";
 import VenueSport from "../models/VenueSport.js";
 import Response from "../utils/Response.js";
+import { sendEmail } from "../utils/Mail.js";
+import { bookingReceiptTemplate } from "../utils/emailTemplates.js";
+import Razorpay from "razorpay";
+import crypto from "crypto";
+
+const getRazorpayClient = () => {
+    const { RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET } = process.env;
+    if (!RAZORPAY_KEY_ID || !RAZORPAY_KEY_SECRET) {
+        throw new Error("Razorpay keys are not configured");
+    }
+    return new Razorpay({ key_id: RAZORPAY_KEY_ID, key_secret: RAZORPAY_KEY_SECRET });
+};
+
+const verifyRazorpaySignature = (orderId, paymentId, signature) => {
+    const { RAZORPAY_KEY_SECRET } = process.env;
+    const body = `${orderId}|${paymentId}`;
+    const expected = crypto
+        .createHmac("sha256", RAZORPAY_KEY_SECRET)
+        .update(body)
+        .digest("hex");
+    return expected === signature;
+};
+
+const createPaymentOrder = async (req, res) => {
+    try {
+        const { amount, currency = "INR", receipt } = req.body;
+        if (!amount || Number.isNaN(Number(amount)) || Number(amount) <= 0) {
+            return res.status(400).json(Response.error(400, "Valid amount is required"));
+        }
+
+        const razorpay = getRazorpayClient();
+        const order = await razorpay.orders.create({
+            amount: Math.round(Number(amount) * 100),
+            currency,
+            receipt
+        });
+
+        return res.status(200).json(Response.success(200, "Order created", {
+            order_id: order.id,
+            amount: order.amount,
+            currency: order.currency
+        }));
+    } catch (error) {
+        console.error("Error creating Razorpay order:", error);
+        return res.status(500).json(Response.error(500, "Unable to create payment order"));
+    }
+};
 
 const venueBooking = async (req, res) => {
     let connection;
@@ -17,6 +66,26 @@ const venueBooking = async (req, res) => {
         if (!sport_id || !venue_id || !start_datetime || !end_datetime || !host_id || !price || !slot_id) {
             if (transactionStarted) await connection.rollback();
             return res.status(400).json(Response.error(400, "Missing required fields"));
+        }
+
+        const paymentOrderId = payment?.razorpay_order_id;
+        const paymentId = payment?.razorpay_payment_id;
+        const paymentSignature = payment?.razorpay_signature;
+
+        let paymentStatus = "unpaid";
+        const hasPaymentDetails = paymentOrderId && paymentId && paymentSignature;
+        if (hasPaymentDetails) {
+            if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+                if (transactionStarted) await connection.rollback();
+                return res.status(500).json(Response.error(500, "Payment gateway is not configured"));
+            }
+
+            const isPaymentValid = verifyRazorpaySignature(paymentOrderId, paymentId, paymentSignature);
+            if (!isPaymentValid) {
+                if (transactionStarted) await connection.rollback();
+                return res.status(400).json(Response.error(400, "Invalid payment signature"));
+            }
+            paymentStatus = "paid";
         }
 
         const gameData = {
@@ -59,12 +128,43 @@ const venueBooking = async (req, res) => {
             start_datetime,
             end_datetime,
             total_price: price,
-            payment
+            payment: paymentStatus
         };
 
         const booking = await Booking.save(bookingData, connection);
 
         await connection.commit();
+
+        if (paymentStatus === "paid") {
+            try {
+                const userRows = await User.findById(host_id, connection);
+                const user = userRows?.[0];
+                const venue = await Venue.findById(venue_id, connection);
+                const totalPrice = Number.isFinite(Number(price))
+                    ? Number(price).toFixed(2)
+                    : price;
+
+                if (user?.user_email) {
+                    const subject = `Playmate Receipt - Booking #${booking.booking_id}`;
+                    const html = bookingReceiptTemplate({
+                        name: `${user.first_name || ""} ${user.last_name || ""}`.trim() || "Player",
+                        bookingId: booking.booking_id,
+                        venueName: venue?.venue_name || "Venue",
+                        venueAddress: venue?.address || "-",
+                        sportName: sport?.sport_name || "-",
+                        startDateTime: start_datetime,
+                        endDateTime: end_datetime,
+                        totalPrice,
+                        paymentStatus,
+                        orderId: paymentOrderId,
+                        paymentId: paymentId
+                    });
+                    await sendEmail(user.user_email, subject, html);
+                }
+            } catch (emailError) {
+                console.error("Receipt email failed:", emailError);
+            }
+        }
 
         return res.status(200).json(
             Response.success(200, "Booking successful", {
@@ -86,12 +186,20 @@ const venueBooking = async (req, res) => {
 const allCreatedGames = async (req, res) => {
     const connection = await db.getConnection();
     try {
-
+        const userId = req.user?.[0]?.user_id || req.params.userId || req.body.user_id;
+        if (!userId) {
+            await connection.release();
+            return res.status(400).json(Response.error(400, "user_id is required"));
+        }
         const query = `
         select 
         s.sport_name,
         v.venue_name,
         v.address,
+        u.first_name,
+        u.last_name,
+        u.profile_image,
+        g.created_at,
         (
             SELECT COUNT(*)
             FROM game_players gp
@@ -100,10 +208,13 @@ const allCreatedGames = async (req, res) => {
         from games g
         left join sports as s on s.sport_id = g.sport_id
         left join venues as v on v.venue_id = g.venue_id
+        left join users as u on u.user_id = g.host_user_id
+
+        where u.user_id != ?
         order by g.created_at desc;
         `
 
-        const [rows] = await connection.query(query);
+        const [rows] = await connection.query(query, [userId]);
 
         res.status(200).json(Response.success(200, "Games fetched successfully", rows));
 
@@ -125,8 +236,7 @@ const userJoinedGames = async (req, res) => {
             return res.status(400).json(Response.error(400, "user_id is required"));
         }
 
-        const query = `
-SELECT 
+        const query = `SELECT 
     g.game_id,
     g.start_datetime,
     g.end_datetime,
@@ -137,7 +247,10 @@ SELECT
     s.sport_name,
     v.venue_name,
     v.address AS venue_location,
-
+    u.first_name,
+        u.last_name,
+        u.profile_image,
+        g.created_at,
     gp_self.status AS my_status,
 
     COUNT(gp_all.user_id) AS total_players
@@ -148,7 +261,7 @@ JOIN sports s
     ON g.sport_id = s.sport_id
 JOIN venues v
     ON g.venue_id = v.venue_id
-
+left join users as u on u.user_id = g.host_user_id
 LEFT JOIN game_players gp_all
     ON g.game_id = gp_all.game_id
    AND gp_all.status = 'Approved'
@@ -164,6 +277,9 @@ GROUP BY
     s.sport_name,
     v.venue_name,
     v.address,
+    u.first_name,
+    u.last_name,
+    u.profile_image,
     gp_self.status
 ORDER BY g.start_datetime DESC;
         `;
@@ -189,9 +305,8 @@ const userGamesCreated = async (req, res) => {
             return res.status(400).json(Response.error(400, "user_id is required"));
         }
 
-        const query = `use playmate2;
-
-SELECT 
+        const query = `
+        SELECT 
     g.game_id,
     g.start_datetime,
     g.end_datetime,
@@ -199,6 +314,10 @@ SELECT
     g.status AS game_status,
     g.created_at,
 
+    u.first_name,
+    u.last_name,
+    u.profile_image,
+    
     s.sport_name,
 
     v.venue_name,
@@ -210,6 +329,7 @@ JOIN sports s
     ON g.sport_id = s.sport_id
 JOIN venues v
     ON g.venue_id = v.venue_id
+left join users as u on u.user_id = g.host_user_id
 
 -- count ONLY approved players
 LEFT JOIN game_players gp
@@ -226,7 +346,10 @@ GROUP BY
     g.created_at,
     s.sport_name,
     v.venue_name,
-    v.address
+    v.address,
+    u.first_name,
+    u.last_name,
+    u.profile_image
 ORDER BY g.created_at DESC;
         `;
 
@@ -243,6 +366,7 @@ ORDER BY g.created_at DESC;
 
 export {
     venueBooking,
+    createPaymentOrder,
     allCreatedGames,
     userJoinedGames,
     userGamesCreated

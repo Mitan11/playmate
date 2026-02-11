@@ -11,6 +11,7 @@ class Booking {
 		this.start_datetime = data.start_datetime;
 		this.end_datetime = data.end_datetime;
 		this.total_price = data.total_price;
+		this.payment = data.payment;
 		this.created_at = data.created_at;
 	}
 
@@ -66,13 +67,14 @@ class Booking {
 			game_id,
 			start_datetime,
 			end_datetime,
-			total_price = null
+			total_price = null,
+			payment = 'unpaid'
 		} = data;
 
 		const [result] = await conn.execute(
-			`INSERT INTO bookings (slot_id, venue_id, venue_sport_id, user_id, game_id, start_datetime, end_datetime, total_price)
-			 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-			[slot_id, venue_id, venue_sport_id, user_id, game_id, start_datetime, end_datetime, total_price]
+			`INSERT INTO bookings (slot_id, venue_id, venue_sport_id, user_id, game_id, start_datetime, end_datetime, total_price, payment)
+			 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			[slot_id, venue_id, venue_sport_id, user_id, game_id, start_datetime, end_datetime, total_price, payment]
 		);
 		return await Booking.findById(result.insertId, conn);
 	}	
