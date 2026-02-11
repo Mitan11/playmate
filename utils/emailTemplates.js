@@ -242,6 +242,87 @@ export const playmateWelcomeTemplate = ({
     `;
 };
 
+export const bookingReceiptTemplate = ({
+  name,
+  bookingId,
+  venueName,
+  venueAddress,
+  sportName,
+  startDateTime,
+  endDateTime,
+  totalPrice,
+  paymentStatus,
+  orderId,
+  paymentId,
+  logoUrl = "https://res.cloudinary.com/dsw5tkkyr/image/upload/v1764918615/1758647674156_nl5ayo.png",
+}) => {
+  const year = new Date().getFullYear();
+  return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="x-apple-disable-message-reformatting">
+  <title>Playmate Booking Receipt</title>
+  <style>
+    * { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+    @media only screen and (max-width: 620px) {
+      table[class="container"] { width: 100% !important; max-width: 100% !important; }
+      td[class="body"] { padding: 15px !important; }
+      h1 { font-size: 20px !important; }
+      p, td { font-size: 14px !important; }
+    }
+  </style>
+</head>
+<body style="margin:0; padding:0; background:#f6f8fa; font-family: Arial, Helvetica, sans-serif; color:#0f172a;" bgcolor="#f6f8fa">
+  <center>
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" bgcolor="#f6f8fa">
+      <tr>
+        <td align="center" style="padding: 20px 10px;">
+          <table class="container" width="600" cellpadding="0" cellspacing="0" border="0" role="presentation" bgcolor="#ffffff" style="max-width: 600px; width: 100%; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.08);">
+            <tr>
+              <td align="center" bgcolor="#22A06B" style="background: #22A06B; padding: 18px; color: #ffffff;">
+                <img src="${logoUrl}" width="64" height="64" alt="Playmate" style="border-radius: 50%; display: block;" />
+                <div style="font-size: 18px; font-weight: bold; margin-top: 6px;">Playmate</div>
+              </td>
+            </tr>
+            <tr>
+              <td class="body" style="padding: 20px; color: #0f172a;">
+                <h1 style="margin: 0 0 10px 0; font-size: 22px;">Booking Receipt</h1>
+                <p style="margin: 0 0 18px 0;">Hi ${name}, your booking is confirmed. Here are the details:</p>
+
+                <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" style="border: 1px solid #e5e7eb; border-radius: 8px;">
+                  <tr><td style="padding: 10px 12px; border-bottom: 1px solid #e5e7eb;"><strong>Booking ID</strong>: ${bookingId}</td></tr>
+                  <tr><td style="padding: 10px 12px; border-bottom: 1px solid #e5e7eb;"><strong>Venue</strong>: ${venueName}</td></tr>
+                  <tr><td style="padding: 10px 12px; border-bottom: 1px solid #e5e7eb;"><strong>Address</strong>: ${venueAddress}</td></tr>
+                  <tr><td style="padding: 10px 12px; border-bottom: 1px solid #e5e7eb;"><strong>Sport</strong>: ${sportName}</td></tr>
+                  <tr><td style="padding: 10px 12px; border-bottom: 1px solid #e5e7eb;"><strong>Start</strong>: ${startDateTime}</td></tr>
+                  <tr><td style="padding: 10px 12px; border-bottom: 1px solid #e5e7eb;"><strong>End</strong>: ${endDateTime}</td></tr>
+                  <tr><td style="padding: 10px 12px; border-bottom: 1px solid #e5e7eb;"><strong>Total</strong>: INR ${totalPrice}</td></tr>
+                  <tr><td style="padding: 10px 12px; border-bottom: 1px solid #e5e7eb;"><strong>Payment</strong>: ${paymentStatus}</td></tr>
+                  <tr><td style="padding: 10px 12px; border-bottom: 1px solid #e5e7eb;"><strong>Order ID</strong>: ${orderId || "-"}</td></tr>
+                  <tr><td style="padding: 10px 12px;"><strong>Payment ID</strong>: ${paymentId || "-"}</td></tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td bgcolor="#f2f5f4" style="background: #f2f5f4; padding: 12px; text-align: center; color: #555555; font-size: 12px;">
+                <div>Playmate — Book venues • Join games • Share moments</div>
+                <div>© ${year} Playmate</div>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </center>
+</body>
+</html>
+  `;
+};
+
 // Password Reset Email Template
 export const resetPasswordTemplate = (otp) => {
   return `
