@@ -61,9 +61,10 @@ const venueBooking = async (req, res) => {
         connection = await db.getConnection();
         await connection.beginTransaction();
         transactionStarted = true;
-        const { sport_id, venue_id, start_datetime, end_datetime, host_id, price, slot_id, payment } = req.body;
+        const { sport_id, venue_id, start_datetime, end_datetime, host_id, price, payment } = req.body;
+        const slotId = Number(req.body?.slot_id ?? req.body?.slotId);
 
-        if (!sport_id || !venue_id || !start_datetime || !end_datetime || !host_id || !price || !slot_id) {
+        if (!sport_id || !venue_id || !start_datetime || !end_datetime || !host_id || !price || !Number.isFinite(slotId) || slotId <= 0) {
             if (transactionStarted) await connection.rollback();
             return res.status(400).json(Response.error(400, "Missing required fields"));
         }
@@ -71,9 +72,10 @@ const venueBooking = async (req, res) => {
         const paymentOrderId = payment?.razorpay_order_id;
         const paymentId = payment?.razorpay_payment_id;
         const paymentSignature = payment?.razorpay_signature;
+        const amount = Number(payment?.amount);
 
         let paymentStatus = "unpaid";
-        const hasPaymentDetails = paymentOrderId && paymentId && paymentSignature;
+        const hasPaymentDetails = paymentOrderId && paymentId && paymentSignature && Number.isFinite(amount) && amount > 0;
         if (hasPaymentDetails) {
             if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
                 if (transactionStarted) await connection.rollback();
@@ -101,14 +103,14 @@ const venueBooking = async (req, res) => {
         const sport = await Sport.findById(sport_id, connection);
         const venue_sport_id = await VenueSport.getSportByvalue(sport.sport_name, connection);
 
-        if (!venue_sport_id || !slot_id || !game?.game_id) {
+        if (!venue_sport_id || !slotId || !game?.game_id) {
             if (transactionStarted) await connection.rollback();
             return res.status(400).json(Response.error(400, "Sport not available at this venue"));
         }
 
         // Check if slot is already booked for the given time
         const existingBooking = await Booking.findOne({
-            slot_id,
+            slot_id: slotId,
             venue_id,
             start_datetime,
             end_datetime
@@ -120,7 +122,7 @@ const venueBooking = async (req, res) => {
         }
 
         const bookingData = {
-            slot_id,
+            slot_id: slotId,
             venue_id,
             venue_sport_id,
             user_id: host_id,
@@ -140,9 +142,9 @@ const venueBooking = async (req, res) => {
                 const userRows = await User.findById(host_id, connection);
                 const user = userRows?.[0];
                 const venue = await Venue.findById(venue_id, connection);
-                const totalPrice = Number.isFinite(Number(price))
-                    ? Number(price).toFixed(2)
-                    : price;
+                const totalPrice = Number.isFinite(Number(amount))
+                    ? Number(amount).toFixed(2)
+                    : amount;
 
                 if (user?.user_email) {
                     const subject = `Playmate Receipt - Booking #${booking.booking_id}`;
@@ -165,6 +167,7 @@ const venueBooking = async (req, res) => {
                 console.error("Receipt email failed:", emailError);
             }
         }
+        console.log('Booking successful:', booking);
 
         return res.status(200).json(
             Response.success(200, "Booking successful", {
