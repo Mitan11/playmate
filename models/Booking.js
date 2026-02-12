@@ -127,7 +127,7 @@ class Booking {
 			JOIN games g ON b.game_id = g.game_id
 			JOIN users hu ON g.host_user_id = hu.user_id
 			WHERE b.venue_id = ? AND g.status = ?
-			ORDER BY b.start_datetime DESC`,
+			ORDER BY b.created_at DESC`,
 			[venueId, status]
 		);
 		return rows;
