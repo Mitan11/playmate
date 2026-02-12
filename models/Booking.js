@@ -29,6 +29,7 @@ class Booking {
 				total_price DECIMAL(10,2) CHECK (total_price >= 0),
 				created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 				payment ENUM('unpaid', 'paid') DEFAULT 'unpaid',
+				UNIQUE KEY uniq_booking_slot_time (slot_id, venue_id, start_datetime, end_datetime),
 				INDEX idx_booking_venue (venue_id),
 				INDEX idx_booking_user (user_id),
 				INDEX idx_booking_game (game_id),
@@ -144,8 +145,8 @@ class Booking {
 	static async findOne(criteria, conn = db) {
 		const { slot_id, venue_id, start_datetime, end_datetime } = criteria;
 		const [rows] = await conn.execute(
-			`SELECT * FROM bookings WHERE slot_id = ? AND venue_id = ? AND start_datetime < ? AND end_datetime > ?`,
-			[slot_id, venue_id, end_datetime, start_datetime]
+			`SELECT * FROM bookings WHERE slot_id = ? AND venue_id = ? AND start_datetime = ? AND end_datetime = ?`,
+			[slot_id, venue_id, start_datetime, end_datetime]
 		);
 		return rows.length ? new Booking(rows[0]) : null;
 	}

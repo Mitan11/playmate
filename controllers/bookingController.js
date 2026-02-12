@@ -167,7 +167,6 @@ const venueBooking = async (req, res) => {
                 console.error("Receipt email failed:", emailError);
             }
         }
-        console.log('Booking successful:', booking);
 
         return res.status(200).json(
             Response.success(200, "Booking successful", {
@@ -178,6 +177,9 @@ const venueBooking = async (req, res) => {
     } catch (error) {
         if (connection && transactionStarted) {
             try { await connection.rollback(); } catch (e) { /* ignore */ }
+        }
+        if (error?.code === "ER_DUP_ENTRY") {
+            return res.status(409).json(Response.error(409, "Slot is already booked for the selected time"));
         }
         console.error('Error processing booking:', error);
         res.status(500).json(Response.error(500, "Internal server error"));
@@ -196,6 +198,8 @@ const allCreatedGames = async (req, res) => {
         }
         const query = `
         select 
+        g.game_id,
+        gp.status,
         s.sport_name,
         v.venue_name,
         v.address,
@@ -212,12 +216,14 @@ const allCreatedGames = async (req, res) => {
         left join sports as s on s.sport_id = g.sport_id
         left join venues as v on v.venue_id = g.venue_id
         left join users as u on u.user_id = g.host_user_id
+        left join game_players as gp on gp.game_id = g.game_id and gp.user_id = ?
 
-        where u.user_id != ?
+        where u.user_id != ? 
+        and (gp.status IS NULL OR gp.status = 'Pending')
         order by g.created_at desc;
         `
 
-        const [rows] = await connection.query(query, [userId]);
+        const [rows] = await connection.query(query, [userId, userId]);
 
         res.status(200).json(Response.success(200, "Games fetched successfully", rows));
 
@@ -251,9 +257,8 @@ const userJoinedGames = async (req, res) => {
     v.venue_name,
     v.address AS venue_location,
     u.first_name,
-        u.last_name,
-        u.profile_image,
-        g.created_at,
+    u.last_name,
+    u.profile_image,
     gp_self.status AS my_status,
 
     COUNT(gp_all.user_id) AS total_players
@@ -264,12 +269,13 @@ JOIN sports s
     ON g.sport_id = s.sport_id
 JOIN venues v
     ON g.venue_id = v.venue_id
-left join users as u on u.user_id = g.host_user_id
+LEFT JOIN users as u ON u.user_id = g.host_user_id
 LEFT JOIN game_players gp_all
     ON g.game_id = gp_all.game_id
    AND gp_all.status = 'Approved'
 
 WHERE gp_self.user_id = ?
+  AND gp_self.status IN ('Approved')
 GROUP BY
     g.game_id,
     g.start_datetime,
@@ -316,7 +322,7 @@ const userGamesCreated = async (req, res) => {
     g.price_per_hour,
     g.status AS game_status,
     g.created_at,
-
+    
     u.first_name,
     u.last_name,
     u.profile_image,
@@ -326,20 +332,22 @@ const userGamesCreated = async (req, res) => {
     v.venue_name,
     v.address AS venue_location,
 
+    b.payment AS payment_status,
+    b.booking_id,
+    b.total_price,
     COUNT(gp.user_id) AS total_players
 FROM games g
 JOIN sports s
     ON g.sport_id = s.sport_id
 JOIN venues v
     ON g.venue_id = v.venue_id
-left join users as u on u.user_id = g.host_user_id
-
--- count ONLY approved players
+LEFT JOIN users as u ON u.user_id = g.host_user_id
+LEFT JOIN bookings as b ON b.game_id = g.game_id
 LEFT JOIN game_players gp
     ON g.game_id = gp.game_id
    AND gp.status = 'Approved'
 
-WHERE g.host_user_id =  ?
+WHERE g.host_user_id = ?
 GROUP BY
     g.game_id,
     g.start_datetime,
@@ -352,7 +360,10 @@ GROUP BY
     v.address,
     u.first_name,
     u.last_name,
-    u.profile_image
+    u.profile_image,
+    b.payment,
+    b.booking_id,
+    b.total_price
 ORDER BY g.created_at DESC;
         `;
 

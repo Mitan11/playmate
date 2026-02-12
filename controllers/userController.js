@@ -4,6 +4,8 @@ import db from "../config/db.js";
 import User from "../models/User.js";
 import { v2 as cloudinary } from 'cloudinary'
 import Post from "../models/Post.js";
+import GamePlayer from "../models/game_player.js";
+import Games from "../models/Games.js";
 
 const updateUserDetails = async (req, res) => {
     const connection = await db.getConnection();
@@ -447,4 +449,57 @@ const recentActivity = async (req, res) => {
     }
 }
 
-export { addUserSport, updateUserDetails, userProfile, deleteUserSport, userPosts, createPost, deletePost, toggleLike, getPostLikes, recentActivity };
+const joinGame = async (req, res) => {
+    const connection = await db.getConnection();
+    try {
+        await connection.beginTransaction();
+
+        const { userId, gameId } = req.params;
+
+        // Validate IDs
+        if (!userId || isNaN(userId)) {
+            await connection.rollback();
+            return res.status(400).json(Response.error(400, "Invalid user ID"));
+        }
+
+        if (!gameId || isNaN(gameId)) {
+            await connection.rollback();
+            return res.status(400).json(Response.error(400, "Invalid game ID"));
+        }
+
+        // Check if game exists
+        const existingGame = await Games.findById(gameId, connection);
+        if (!existingGame) {
+            await connection.rollback();
+            return res.status(404).json(Response.error(404, "Game not found"));
+        }
+
+        // Check if user already joined the game
+        const alreadyJoined = await GamePlayer.findByGameAndUser(gameId, userId, connection);
+
+        if (alreadyJoined) {
+            await connection.rollback();
+            return res.status(409).json(Response.error(409, "User already joined this game"));
+        }
+
+        // Add user to the game
+        await GamePlayer.save({ game_id: gameId, user_id: userId }, connection);
+
+        await connection.commit();
+        res.status(200).json(Response.success(200, "Joined game successfully"));
+
+    } catch (error) {
+        if (error?.code === "ER_DUP_ENTRY") {
+            await connection.rollback();
+            return res.status(409).json(Response.error(409, "User already joined this game"));
+        }
+        await connection.rollback();
+        console.error("Error joining game:", error);
+        res.status(500).json(Response.error(500, "Internal Server Error"));
+    } finally {
+        await connection.release();
+    }
+}
+
+
+export { addUserSport, updateUserDetails, userProfile, deleteUserSport, userPosts, createPost, deletePost, toggleLike, getPostLikes, recentActivity, joinGame };

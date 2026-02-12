@@ -1,5 +1,5 @@
 import express from 'express';
-import { addUserSport, createPost, deletePost, deleteUserSport, getPostLikes, recentActivity, toggleLike, updateUserDetails, userPosts, userProfile } from '../controllers/userController.js';
+import { addUserSport, createPost, deletePost, deleteUserSport, getPostLikes, joinGame, recentActivity, toggleLike, updateUserDetails, userPosts, userProfile } from '../controllers/userController.js';
 import { handleValidationErrors } from '../middleware/validation.js';
 import upload from '../middleware/multer.js';
 import { verifyToken } from '../middleware/authUser.js';
@@ -102,6 +102,13 @@ userRouter.get('/usersCreatedGames', verifyToken, (req, res) => {
     // #swagger.tags = ['User']
     // #swagger.description = 'Get all games created by a user by ID'
     userGamesCreated(req, res);
+});
+
+userRouter.post('/joinGame/:userId/:gameId', verifyToken, (req, res) => {
+    // #swagger.tags = ['User']
+    // #swagger.description = 'Join a game by ID'
+    // Implementation of joinGame function is assumed to be present
+    joinGame(req, res);
 });
 
 export default userRouter;
