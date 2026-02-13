@@ -149,6 +149,15 @@ class GamePlayer {
 		);
 		return result.affectedRows > 0;
 	}
+
+	static async deleteByGameAndUser(gameId, userId, conn = db) {
+		const [result] = await conn.execute(
+			'DELETE FROM game_players WHERE game_id = ? AND user_id = ?',
+			[gameId, userId]
+		);
+		return result.affectedRows > 0;
+	}
+
 }
 
 export default GamePlayer;

@@ -85,6 +85,14 @@ class Booking {
 		return rows.length ? new Booking(rows[0]) : null;
 	}
 
+	static async findByUserAndGame(userId, gameId, conn = db) {
+		const [rows] = await conn.execute(
+			'SELECT * FROM bookings WHERE user_id = ? AND game_id = ? LIMIT 1',
+			[userId, gameId]
+		);
+		return rows.length ? new Booking(rows[0]) : null;
+	}
+
 	static async deleteById(id, conn = db) {
 		const [result] = await conn.execute('DELETE FROM bookings WHERE booking_id = ?', [id]);
 		return result.affectedRows > 0;
