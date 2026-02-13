@@ -6,6 +6,22 @@ import { v2 as cloudinary } from 'cloudinary'
 import Post from "../models/Post.js";
 import GamePlayer from "../models/game_player.js";
 import Games from "../models/Games.js";
+import Booking from "../models/Booking.js";
+import crypto from "crypto";
+import Venue from "../models/Venue.js";
+import Sport from "../models/Sport.js";
+import { bookingReceiptTemplate } from "../utils/emailTemplates.js";
+import { sendEmail } from "../utils/Mail.js";
+
+const verifyRazorpaySignature = (orderId, paymentId, signature) => {
+    const { RAZORPAY_KEY_SECRET } = process.env;
+    const body = `${orderId}|${paymentId}`;
+    const expected = crypto
+        .createHmac("sha256", RAZORPAY_KEY_SECRET)
+        .update(body)
+        .digest("hex");
+    return expected === signature;
+};
 
 const updateUserDetails = async (req, res) => {
     const connection = await db.getConnection();
@@ -501,5 +517,150 @@ const joinGame = async (req, res) => {
     }
 }
 
+const leaveGame = async (req, res) => {
+    const connection = await db.getConnection();
+    try {
+        await connection.beginTransaction();
+        const { userId, gameId } = req.params;
+        // Validate IDs
+        if (!userId || isNaN(userId)) {
+            await connection.rollback();
+            return res.status(400).json(Response.error(400, "Invalid user ID"));
+        }
 
-export { addUserSport, updateUserDetails, userProfile, deleteUserSport, userPosts, createPost, deletePost, toggleLike, getPostLikes, recentActivity, joinGame };
+        if (!gameId || isNaN(gameId)) {
+            await connection.rollback();
+            return res.status(400).json(Response.error(400, "Invalid game ID"));
+        }
+
+        // Check if game exists
+        const existingGame = await Games.findById(gameId, connection);
+
+
+        if (!existingGame) {
+            await connection.rollback();
+            return res.status(404).json(Response.error(404, "Game not found"));
+        }
+
+        // Check if user is in the game
+        const existingPlayer = await GamePlayer.findByGameAndUser(gameId, userId, connection);
+        if (!existingPlayer) {
+            await connection.rollback();
+            return res.status(404).json(Response.error(404, "User is not in this game"));
+        }
+
+        // Remove user from the game
+        await GamePlayer.deleteByGameAndUser(gameId, userId, connection);
+
+        await connection.commit();
+        res.status(200).json(Response.success(200, "Left game successfully"));
+
+    } catch (error) {
+        await connection.rollback();
+        console.error("Error leaving game:", error);
+        res.status(500).json(Response.error(500, "Internal Server Error"));
+    } finally {
+        await connection.release();
+    }
+}
+
+const makePayment = async (req, res) => {
+    const connection = await db.getConnection();
+    try {
+        await connection.beginTransaction();
+
+        const userId = req.user?.[0]?.user_id || req.body.user_id || req.params.userId;
+        const gameId = req.body.game_id || req.params.gameId;
+        const payment = req.body.payment || req.body;
+
+        const paymentOrderId = payment?.razorpay_order_id;
+        const paymentId = payment?.razorpay_payment_id;
+        const paymentSignature = payment?.razorpay_signature;
+        const amount = Number(payment?.amount);
+
+        if (!userId || !gameId) {
+            await connection.rollback();
+            return res.status(400).json(Response.error(400, "user_id and game_id are required"));
+        }
+
+        if (!paymentOrderId || !paymentId || !paymentSignature || !Number.isFinite(amount) || amount <= 0) {
+            await connection.rollback();
+            return res.status(400).json(Response.error(400, "Valid payment details are required"));
+        }
+
+        if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+            await connection.rollback();
+            return res.status(500).json(Response.error(500, "Payment gateway is not configured"));
+        }
+
+        const isPaymentValid = verifyRazorpaySignature(paymentOrderId, paymentId, paymentSignature);
+        if (!isPaymentValid) {
+            await connection.rollback();
+            return res.status(400).json(Response.error(400, "Invalid payment signature"));
+        }
+
+        const booking = await Booking.findByUserAndGame(userId, gameId, connection);
+        
+        if (!booking) {
+            await connection.rollback();
+            return res.status(404).json(Response.error(404, "Booking not found"));
+        }
+
+        if (booking.payment === "paid") {
+            await connection.rollback();
+            return res.status(200).json(Response.success(200, "Payment already completed", {
+                booking_id: booking.booking_id,
+                payment: booking.payment
+            }));
+        }
+
+        await Booking.updatePaymentStatus(booking.booking_id, connection);
+        await connection.commit();
+
+        try {
+            const userRows = await User.findById(userId, connection);
+            const user = userRows?.[0];
+            const venue = await Venue.findById(booking.venue_id, connection);
+            const game = await Games.findById(booking.game_id, connection);
+            const sport = game ? await Sport.findById(game.sport_id, connection) : null;
+            const totalPrice = Number.isFinite(Number(amount))
+                ? Number(amount).toFixed(2)
+                : Number.isFinite(Number(booking?.total_price))
+                    ? Number(booking.total_price).toFixed(2)
+                    : booking?.total_price;
+
+            if (user?.user_email) {
+                const subject = `Playmate Receipt - Booking #${booking.booking_id}`;
+                const html = bookingReceiptTemplate({
+                    name: `${user.first_name || ""} ${user.last_name || ""}`.trim() || "Player",
+                    bookingId: booking.booking_id,
+                    venueName: venue?.venue_name || "Venue",
+                    venueAddress: venue?.address || "-",
+                    sportName: sport?.sport_name || "-",
+                    startDateTime: booking.start_datetime,
+                    endDateTime: booking.end_datetime,
+                    totalPrice,
+                    paymentStatus: "paid",
+                    orderId: paymentOrderId,
+                    paymentId: paymentId
+                });
+                await sendEmail(user.user_email, subject, html);
+            }
+        } catch (emailError) {
+            console.error("Receipt email failed:", emailError);
+        }
+
+        return res.status(200).json(Response.success(200, "Payment updated successfully", {
+            booking_id: booking.booking_id,
+            payment: "paid"
+        }));
+    } catch (error) {
+        await connection.rollback();
+        console.error("Error updating payment status:", error);
+        return res.status(500).json(Response.error(500, "Internal Server Error"));
+    } finally {
+        await connection.release();
+    }
+}
+
+export { addUserSport, updateUserDetails, userProfile, deleteUserSport, userPosts, createPost, deletePost, toggleLike, getPostLikes, recentActivity, joinGame, leaveGame, makePayment };
