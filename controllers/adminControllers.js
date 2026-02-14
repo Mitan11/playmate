@@ -643,7 +643,6 @@ const getVenues = async (req, res) => {
         const venues = await Venue.getAllVenues(connection);
         res.status(200).json(Response.success(200, "Venues fetched successfully", venues));
     } catch (err) {
-        connection.release();
         console.error('Error fetching venues:', err);
         res.status(500).json(Response.error(500, "Failed to fetch venues"));
     }finally{
@@ -676,7 +675,6 @@ const getAllPosts = async (req, res) => {
         const posts = await Post.getAllPosts(connection);
         res.status(200).json(Response.success(200, "Posts fetched successfully", posts));
     }catch(err){
-        connection.release();
         console.error('Error fetching posts:', err);
         res.status(500).json(Response.error(500, "Failed to fetch posts"));
     }finally{
@@ -693,7 +691,6 @@ const deletePost = async (req, res) => {
         const exist = await Post.findById(post_id, connection);
 
         if (!exist) {
-            connection.release();
             return res.status(404).json(Response.error(404, "Post not found"));
         }
 
@@ -703,7 +700,6 @@ const deletePost = async (req, res) => {
         res.status(200).json(Response.success(200, "Post deleted successfully"));
 
     } catch (err) {
-        connection.release();
         console.error('Error deleting post:', err);
         res.status(500).json(Response.error(500, "Failed to delete post"));
     }finally{

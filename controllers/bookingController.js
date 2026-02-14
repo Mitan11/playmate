@@ -193,7 +193,6 @@ const allCreatedGames = async (req, res) => {
     try {
         const userId = req.user?.[0]?.user_id || req.params.userId || req.body.user_id;
         if (!userId) {
-            await connection.release();
             return res.status(400).json(Response.error(400, "user_id is required"));
         }
         const query = `
@@ -228,7 +227,6 @@ const allCreatedGames = async (req, res) => {
         res.status(200).json(Response.success(200, "Games fetched successfully", rows));
 
     } catch (error) {
-        await connection.release();
         console.error('Error fetching games:', error);
         res.status(500).json(Response.error(500, "Internal server error"));
     } finally {
@@ -290,7 +288,7 @@ GROUP BY
     u.last_name,
     u.profile_image,
     gp_self.status
-ORDER BY g.start_datetime DESC;
+ORDER BY g.created_at DESC;
         `;
 
         const [rows] = await connection.query(query, [userId]);
