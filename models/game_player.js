@@ -126,10 +126,13 @@ class GamePlayer {
 		return rows;
 	}
 
-	static async updateStatus(gamePlayerId, status, conn = db) {
-		const [result] = await conn.execute(
-			'UPDATE game_players SET status = ? WHERE game_player_id = ?',
-			[status, gamePlayerId]
+	static async updateStatus(gamePlayerId, userId, status, conn = db) {
+		// Update query
+		const [result] = await conn.query(
+			`UPDATE game_players 
+       SET status = ?
+       WHERE game_player_id = ? AND user_id = ?`,
+			[status, gamePlayerId, userId]
 		);
 		return result.affectedRows > 0;
 	}
@@ -157,6 +160,110 @@ class GamePlayer {
 		);
 		return result.affectedRows > 0;
 	}
+
+	static async getPlayersByGameId(gameId, userId, conn = db) {
+		try {
+			const [rows] = await conn.execute(
+				`
+				SELECT 
+    u.user_id,
+    u.first_name,
+    u.last_name,
+    u.profile_image,
+
+    GROUP_CONCAT(
+        CONCAT(s.sport_name, ' (', us.skill_level, ')')
+        ORDER BY s.sport_name
+        SEPARATOR ', '
+    ) AS all_skills,
+	gp.game_player_id,
+    gp.status AS request_status,
+    gp.joined_at
+FROM games g
+JOIN game_players gp
+    ON g.game_id = gp.game_id
+JOIN users u
+    ON gp.user_id = u.user_id
+
+LEFT JOIN user_sports us
+    ON us.user_id = u.user_id
+LEFT JOIN sports s
+    ON s.sport_id = us.sport_id
+
+
+				WHERE g.game_id = ?
+				  AND g.host_user_id = ?
+				  AND gp.status = 'Approved'
+
+GROUP BY
+    u.user_id,
+    u.first_name,
+    u.last_name,
+    u.profile_image,
+    gp.game_player_id,
+    gp.status,
+    gp.joined_at
+
+				ORDER BY gp.joined_at DESC;
+				`,
+				[gameId, userId]
+			);
+			return rows;
+		} catch (error) {
+			console.error('Error getting players by game ID:', error);
+			throw error;
+		}
+	}
+
+	static async getRequestedPlayersByGameId(gameId, userId, conn = db) {
+		try {
+			const query = `SELECT 
+    u.user_id,
+    u.first_name,
+    u.last_name,
+    u.profile_image,
+
+    GROUP_CONCAT(
+        CONCAT(s.sport_name, ' (', us.skill_level, ')')
+        ORDER BY s.sport_name
+        SEPARATOR ', '
+    ) AS all_skills,
+	gp.game_player_id,
+    gp.status AS request_status,
+    gp.joined_at
+FROM games g
+JOIN game_players gp
+    ON g.game_id = gp.game_id
+JOIN users u
+    ON gp.user_id = u.user_id
+
+LEFT JOIN user_sports us
+    ON us.user_id = u.user_id
+LEFT JOIN sports s
+    ON s.sport_id = us.sport_id
+
+			WHERE g.game_id = ?
+			  AND g.host_user_id = ?
+  AND gp.status = 'Pending'
+GROUP BY
+    u.user_id,
+    u.first_name,
+    u.last_name,
+    u.profile_image,
+    gp.game_player_id,
+    gp.status,
+    gp.joined_at
+			ORDER BY gp.joined_at DESC;`;
+			const [rows] = await conn.execute(query, [gameId, userId]);
+
+			return rows;
+		} catch (error) {
+			console.error('Error getting requested players by game ID:', error);
+			throw error;
+		}
+	}
+
+
 
 }
 

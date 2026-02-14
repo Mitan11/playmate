@@ -24,6 +24,7 @@ import Post from "./models/Post.js";
 import UserSport from "./models/UserSport.js";
 import VenueImages from "./models/VenueImages.js";
 import userRouter from "./routes/userRouter.js";
+import GamePlayer from "./models/game_player.js";
 
 // Ensure tables exist in dependency-safe order to satisfy foreign keys
 const tablesReady = (async () => {
@@ -38,6 +39,7 @@ const tablesReady = (async () => {
         await Post.createTable();
         await UserSport.createTable();
         await VenueImages.createTable();
+        await GamePlayer.createTable();
         console.log("All tables ensured");
     } catch (err) {
         console.error("Table initialization failed:", err);
