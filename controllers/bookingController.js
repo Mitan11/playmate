@@ -219,7 +219,7 @@ const allCreatedGames = async (req, res) => {
         left join game_players as gp on gp.game_id = g.game_id and gp.user_id = ?
 
         where u.user_id != ? 
-        and (gp.status IS NULL OR gp.status = 'Pending')
+        and (gp.status IS NULL OR gp.status = 'Pending' OR gp.status = 'Rejected')
         order by g.created_at desc;
         `
 
@@ -320,7 +320,7 @@ const userGamesCreated = async (req, res) => {
     g.start_datetime,
     g.end_datetime,
     g.price_per_hour,
-    g.status AS game_status,
+    
     g.created_at,
     
     u.first_name,

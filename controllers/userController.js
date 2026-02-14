@@ -600,7 +600,7 @@ const makePayment = async (req, res) => {
         }
 
         const booking = await Booking.findByUserAndGame(userId, gameId, connection);
-        
+
         if (!booking) {
             await connection.rollback();
             return res.status(404).json(Response.error(404, "Booking not found"));
@@ -663,4 +663,84 @@ const makePayment = async (req, res) => {
     }
 }
 
-export { addUserSport, updateUserDetails, userProfile, deleteUserSport, userPosts, createPost, deletePost, toggleLike, getPostLikes, recentActivity, joinGame, leaveGame, makePayment };
+const playerJoinedList = async (req, res) => {
+    const connection = await db.getConnection();
+    try {
+        const { gameId } = req.params;
+        const userId = req.user?.[0]?.user_id || req.body.user_id || req.params.userId;
+        if (!gameId || isNaN(gameId)) {
+            return res.status(400).json(Response.error(400, "Invalid game ID"));
+        }
+        const game = await Games.findById(gameId, connection);
+        if (!game) {
+            return res.status(404).json(Response.error(404, "Game not found"));
+        }
+        const players = await GamePlayer.getPlayersByGameId(gameId, userId, connection);
+        res.status(200).json(Response.success(200, "Players retrieved successfully", { players }));
+    } catch (error) {
+        console.error("Error fetching players for game:", error);
+        res.status(500).json(Response.error(500, "Internal Server Error"));
+    } finally {
+        await connection.release();
+    }
+}
+
+const requestedPlayersList = async (req, res) => {
+    const connection = await db.getConnection();
+    try {
+        const { gameId } = req.params;
+        const userId = req.user?.[0]?.user_id || req.body.user_id || req.params.userId;
+        if (!gameId || isNaN(gameId)) {
+            return res.status(400).json(Response.error(400, "Invalid game ID"));
+        }
+        const game = await Games.findById(gameId, connection);
+        if (!game) {
+            return res.status(404).json(Response.error(404, "Game not found"));
+        }
+        const players = await GamePlayer.getRequestedPlayersByGameId(gameId, userId, connection);
+        res.status(200).json(Response.success(200, "Requested players retrieved successfully", { players }));
+    } catch (error) {
+        console.error("Error fetching requested players for game:", error);
+        res.status(500).json(Response.error(500, "Internal Server Error"));
+    } finally {
+        await connection.release();
+    }
+}
+
+const updateGamePlayerStatus = async (req, res) => {
+    try {
+        const { game_player_id, user_id, status } = req.body;
+        
+        // ENUM validation
+        const allowedStatus = ["Pending", "Approved", "Rejected"];
+        if (!allowedStatus.includes(status)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid status. Allowed: Pending, Approved, Rejected",
+            });
+        }
+
+        const result = await GamePlayer.updateStatus(game_player_id, user_id, status);
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "No matching record found",
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: `Status updated successfully to ${status}`,
+        });
+
+    } catch (error) {
+        console.error("updateGamePlayerStatus Error:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Server error",
+        });
+    }
+};
+
+export { addUserSport, updateUserDetails, userProfile, deleteUserSport, userPosts, createPost, deletePost, toggleLike, getPostLikes, recentActivity, joinGame, leaveGame, makePayment, playerJoinedList, requestedPlayersList, updateGamePlayerStatus };

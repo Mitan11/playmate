@@ -1,5 +1,5 @@
 import express from 'express';
-import { addUserSport, createPost, deletePost, deleteUserSport, getPostLikes, joinGame, leaveGame, makePayment, recentActivity, toggleLike, updateUserDetails, userPosts, userProfile } from '../controllers/userController.js';
+import { addUserSport, createPost, deletePost, deleteUserSport, getPostLikes, joinGame, leaveGame, makePayment, playerJoinedList, recentActivity, requestedPlayersList, toggleLike, updateGamePlayerStatus, updateUserDetails, userPosts, userProfile } from '../controllers/userController.js';
 import { handleValidationErrors } from '../middleware/validation.js';
 import upload from '../middleware/multer.js';
 import { verifyToken } from '../middleware/authUser.js';
@@ -124,5 +124,24 @@ userRouter.delete('/leaveGame/:userId/:gameId', verifyToken, (req, res) => {
     leaveGame(req, res);
 });
 
+userRouter.get('/getPlayersByGameId/:gameId', verifyToken, (req, res) => {
+    // #swagger.tags = ['User']
+    // #swagger.description = 'Get players for a game by ID'
+    playerJoinedList(req, res);
+});
+
+userRouter.get('/requestedUserList/:gameId', verifyToken, (req, res) => {
+    // #swagger.tags = ['User']
+    // #swagger.description = 'Get requested user list for a game by ID'
+    // Implementation of requestedPlayersList function is assumed to be present
+    requestedPlayersList(req, res);
+});
+
+userRouter.patch('/updateGamePlayerStatus', verifyToken, (req, res) => {
+    // #swagger.tags = ['User']
+    // #swagger.description = 'Update game player status'
+    // Implementation of updateGamePlayerStatus function is assumed to be present
+    updateGamePlayerStatus(req, res);
+});
 
 export default userRouter;
