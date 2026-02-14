@@ -95,7 +95,8 @@ class App {
 
     async startLocalServer() {
         try {
-            await db.getConnection();
+            const connection = await db.getConnection();
+            connection.release();
             console.log("Database connection successful on startup");
 
             // Wait for table creation before accepting traffic
