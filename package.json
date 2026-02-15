@@ -8,8 +8,7 @@
     "dev": "nodemon app.js",
     "start": "node app.js",
     "swagger": "node ./swagger.js",
-    "build": "npm run swagger",
-    "migrate": "node ./scripts/migrate.js"
+    "build": "npm run swagger"
   },
   "keywords": [],
   "author": "",
