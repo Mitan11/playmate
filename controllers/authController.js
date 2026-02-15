@@ -95,9 +95,7 @@ const login = async (req, res) => {
 
         if (!user) {
             return res.status(404).json(
-                Response.error(404, "incorrect email or password", {
-                    email_error: "Email not found"
-                })
+                Response.error(404, "incorrect email or password")
             );
         }
 
