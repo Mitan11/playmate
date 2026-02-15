@@ -27,24 +27,27 @@ import userRouter from "./routes/userRouter.js";
 import GamePlayer from "./models/game_player.js";
 
 // Ensure tables exist in dependency-safe order to satisfy foreign keys
-const tablesReady = (async () => {
-    try {
-        await Sport.createTable();
-        await User.createTable();
-        await Venue.createTable();
-        await VenueSport.createTable();
-        await Slot.createTable();
-        await Games.createTable();
-        await Booking.createTable();
-        await Post.createTable();
-        await UserSport.createTable();
-        await VenueImages.createTable();
-        await GamePlayer.createTable();
-        console.log("All tables ensured");
-    } catch (err) {
-        console.error("Table initialization failed:", err);
-    }
-})();
+// Skip on Vercel to avoid exhausting connection limits during cold starts.
+const tablesReady = process.env.VERCEL
+    ? Promise.resolve()
+    : (async () => {
+        try {
+            await Sport.createTable();
+            await User.createTable();
+            await Venue.createTable();
+            await VenueSport.createTable();
+            await Slot.createTable();
+            await Games.createTable();
+            await Booking.createTable();
+            await Post.createTable();
+            await UserSport.createTable();
+            await VenueImages.createTable();
+            await GamePlayer.createTable();
+            console.log("All tables ensured");
+        } catch (err) {
+            console.error("Table initialization failed:", err);
+        }
+    })();
 
 class App {
     constructor() {
