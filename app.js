@@ -26,6 +26,26 @@ import VenueImages from "./models/VenueImages.js";
 import userRouter from "./routes/userRouter.js";
 import GamePlayer from "./models/game_player.js";
 
+// Ensure tables exist in dependency-safe order to satisfy foreign keys
+const tablesReady = (async () => {
+    try {
+        await Sport.createTable();
+        await User.createTable();
+        await Venue.createTable();
+        await VenueSport.createTable();
+        await Slot.createTable();
+        await Games.createTable();
+        await Booking.createTable();
+        await Post.createTable();
+        await UserSport.createTable();
+        await VenueImages.createTable();
+        await GamePlayer.createTable();
+        console.log("All tables ensured");
+    } catch (err) {
+        console.error("Table initialization failed:", err);
+    }
+})();
+
 class App {
     constructor() {
         this.app = express();
@@ -78,6 +98,9 @@ class App {
             const connection = await db.getConnection();
             connection.release();
             console.log("Database connection successful on startup");
+
+            // Wait for table creation before accepting traffic
+            await tablesReady;
 
             this.app.listen(this.PORT, "0.0.0.0", () => {
                 console.log(`Local server running → http://localhost:${this.PORT}`);

@@ -1,7 +1,5 @@
 import mysql from 'mysql2/promise';
 
-const connectionLimit = process.env.VERCEL ? 1 : 3;
-
 const dbConfig = {
     host: process.env.DB_HOST,
     port: process.env.DB_PORT,
@@ -10,16 +8,11 @@ const dbConfig = {
     database: process.env.DB_NAME,
     waitForConnections: true,
     // Provider cap is 5 concurrent connections; keep pool below that to avoid ER_USER_LIMIT_REACHED
-    connectionLimit,
+    connectionLimit: 3,
     queueLimit: 0,
 };
 
-// Reuse pool across serverless invocations when possible
-const globalForDb = globalThis;
-const db = globalForDb._dbPool ?? mysql.createPool(dbConfig);
-
-if (!globalForDb._dbPool) {
-    globalForDb._dbPool = db;
-}
+// Create connection pool
+const db = mysql.createPool(dbConfig);
 
 export default db;
