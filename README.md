@@ -56,11 +56,15 @@ The API follows RESTful principles, implements JWT-based authentication, and use
   - Profile management with image uploads
   - Password reset via OTP email
   - Password change for logged-in users
+  - Phone number support in user profiles
 - 🏢 **Venue Management**:
   - Venue registration and authentication
   - Venue owner profiles
-  - Venue-sport associations with pricing
-  - Court/facility management
+  - Venue-sport associations
+  - Slot-based pricing and availability
+- 🖼️ **Venue Gallery**:
+  - Upload and manage venue images (up to 3 per venue)
+  - Cloudinary-hosted image URLs
 - 📷 **Image Upload**: 
   - Cloudinary integration for optimized profile images
   - Automatic image resizing and optimization
@@ -69,6 +73,7 @@ The API follows RESTful principles, implements JWT-based authentication, and use
 - 📧 **Email Notifications**: 
   - Welcome emails for new users and venues
   - Password reset with 4-digit OTP verification
+  - Booking receipt email after successful payment
   - Professional HTML email templates
   - Gmail SMTP integration
 - ✅ **Input Validation**: 
@@ -98,8 +103,26 @@ The API follows RESTful principles, implements JWT-based authentication, and use
 - 🏅 **Sport Management**: 
   - Complete CRUD operations for sports
   - User-sport associations with skill levels
-  - Venue-sport associations with pricing
+  - Venue-sport associations (pricing via slots)
   - Sport statistics and analytics
+- 🗓️ **Slot Management**:
+  - Slot CRUD for venues
+  - Availability by venue, date, and sport
+- 🧾 **Bookings & Payments**:
+  - Venue slot booking with conflict checks
+  - Razorpay order creation and signature verification
+  - Payment status updates and receipts
+- 🕹️ **Games & Players**:
+  - Auto game creation during booking
+  - Join/leave games and request approvals
+  - Player lists and requested players
+- 📝 **Social Posts**:
+  - Create posts with text or media
+  - Likes and like counts
+  - Recent activity feed with pagination
+- 📊 **Analytics & Dashboards**:
+  - Admin dashboard stats and advanced analytics
+  - Venue dashboard stats and revenue/booking trends
 - 📖 **API Documentation**: 
   - Swagger UI integration at `/api-docs`
   - Auto-generated API documentation
@@ -116,10 +139,6 @@ The API follows RESTful principles, implements JWT-based authentication, and use
 - 🏆 **Achievements**: 
   - Gamification with badges and milestones
   - User rankings and leaderboards
-- 📅 **Booking System**:
-  - Venue court booking
-  - Time slot management
-  - Payment integration
 - 📸 **Media Gallery**: Photo and video uploads for events
 - ⭐ **Ratings & Reviews**: User and venue rating system
 
@@ -137,6 +156,7 @@ The API follows RESTful principles, implements JWT-based authentication, and use
 - **Image CDN**: Cloudinary
 - **Email Service**: Nodemailer (Gmail SMTP)
 - **File Upload**: Multer
+- **Payments**: Razorpay
 - **Environment**: dotenv
 - **Development**: nodemon
 
@@ -154,22 +174,31 @@ playmate/
 ├── config/               # Configuration files
 │   └── db.js            # MySQL database connection pool
 ├── routes/              # API route definitions
+│   ├── adminRouter.js   # Admin routes
 │   ├── authRouter.js    # Authentication routes
 │   ├── sportRouter.js   # Sports management routes
 │   ├── userRouter.js    # User profile routes
 │   └── venueRouter.js   # Venue management routes
 ├── controllers/         # Business logic handlers
+│   ├── adminControllers.js # Admin analytics and management
 │   ├── authController.js    # Authentication logic
+│   ├── bookingController.js # Bookings and payments
+│   ├── slotController.js    # Slot management
 │   ├── sportController.js   # Sports management logic
 │   ├── userController.js    # User management logic
 │   └── venueController.js   # Venue management logic
 ├── models/              # Database models (ORM layer)
+│   ├── Booking.js       # Booking data model
+│   ├── Games.js         # Games data model
+│   ├── Post.js          # Social posts data model
+│   ├── Slot.js          # Slot data model
 │   ├── User.js          # User data model
 │   ├── Sport.js         # Sport data model
 │   ├── UserSport.js     # User-Sport relationship model
 │   ├── Venue.js         # Venue data model
+│   ├── VenueImages.js   # Venue images data model
 │   ├── VenueSport.js    # Venue-Sport relationship model
-│   └── VenueSportCourt.js # Court management model
+│   └── game_player.js   # Game players data model
 ├── middleware/          # Express middleware
 │   ├── authUser.js      # JWT authentication middleware
 │   ├── validation.js    # Input validation rules
@@ -196,7 +225,7 @@ playmate/
 
 ### Routes
 
-The application exposes four main route groups:
+The application exposes five main route groups:
 
 #### 1. **Authentication Routes** (`/api/v1/auth`)
 **File**: `routes/authRouter.js`
@@ -227,10 +256,13 @@ The application exposes four main route groups:
 | Endpoint | Method | Description | Auth Required |
 |----------|--------|-------------|---------------|
 | `/health` | GET | Sports service health check | ❌ |
-| `/addNewSport` | POST | Create new sport | ✅ |
+| `/addNewSport` | POST | Create new sport | ❌ |
 | `/getAllSports` | GET | Retrieve all sports | ❌ |
-| `/updateSport/:sportId` | PUT | Update sport details | ✅ |
-| `/deleteSport/:sportId` | DELETE | Delete a sport | ✅ |
+| `/updateSport/:sportId` | PUT | Update sport details | ❌ |
+| `/deleteSport/:sportId` | DELETE | Delete a sport | ❌ |
+| `/addUserSport` | POST | Add sport to user with skill level | ✅ |
+| `/getUserSports/:userId` | GET | Get sports associated with a user | ✅ |
+| `/deleteUserSport/:userSportId` | DELETE | Remove a user sport by ID | ✅ |
 
 **Features**:
 - CRUD operations for sports management
@@ -249,12 +281,32 @@ The application exposes four main route groups:
 | `/userSport` | POST | Add sport to user profile | ✅ |
 | `/deleteUserSport/:user_id/:sport_id` | DELETE | Remove sport from user | ✅ |
 | `/profile/:userId` | GET | Get user profile with sports | ✅ |
+| `/userPosts/:userId` | GET | Get user posts | ✅ |
+| `/createPost/:userId` | POST | Create a post (text or media) | ✅ |
+| `/deletePost/:postId/:userId` | DELETE | Delete a post by ID | ✅ |
+| `/toggle/:postId/:userId` | POST | Like/unlike a post | ✅ |
+| `/getPostLikes/:postId` | GET | Get post likes and likers | ✅ |
+| `/recentActivities/:userId` | GET | Recent feed with pagination | ✅ |
+| `/venueBooking` | POST | Book a venue slot | ✅ |
+| `/payments/order` | POST | Create Razorpay order | ✅ |
+| `/payments/complete/:gameId` | POST | Complete payment for booking | ✅ |
+| `/allGames` | GET | Get available games | ✅ |
+| `/joinedGames` | GET | Get games joined by user | ✅ |
+| `/usersCreatedGames` | GET | Get games created by user | ✅ |
+| `/joinGame/:userId/:gameId` | POST | Join a game | ✅ |
+| `/leaveGame/:userId/:gameId` | DELETE | Leave a game | ✅ |
+| `/getPlayersByGameId/:gameId` | GET | Get approved players for a game | ✅ |
+| `/requestedUserList/:gameId` | GET | Get pending player requests | ✅ |
+| `/updateGamePlayerStatus` | PATCH | Approve/reject player requests | ✅ |
 
 **Features**:
 - Profile management with Cloudinary image upload
 - User-sport relationship management
 - Skill level tracking (Beginner, Intermediate, Pro)
 - Complete user profile retrieval
+- Post creation, likes, and recent activity feed
+- Venue booking with Razorpay payments
+- Game participation and player approval flow
 
 ---
 
@@ -265,12 +317,97 @@ The application exposes four main route groups:
 |----------|--------|-------------|---------------|
 | `/register` | POST | Register new venue | ❌ |
 | `/login` | POST | Venue owner login | ❌ |
+| `/venueImage/upload/:venueId` | POST | Upload venue image | ✅ |
+| `/venueImages/:venueId` | GET | Get venue images | ✅ |
+| `/venueImage/:venueImageId` | DELETE | Delete venue image | ✅ |
+| `/profile/:venueId` | GET | Get venue profile | ✅ |
+| `/profile/:venueId` | PUT | Update venue profile | ✅ |
+| `/dashboard/stats/:venueId` | GET | Venue dashboard stats | ✅ |
+| `/analytics/daily-booking-trend/:venueId` | GET | Daily booking trend | ✅ |
+| `/analytics/monthly-revenue-trend/:venueId` | GET | Monthly revenue trend | ✅ |
+| `/analytics/revenue-by-sport/:venueId` | GET | Revenue by sport | ✅ |
+| `/analytics/revenue-by-slot/:venueId` | GET | Revenue by slot | ✅ |
+| `/analytics/most-booked-slots/:venueId` | GET | Most booked slots | ✅ |
+| `/analytics/peak-booking-hours/:venueId` | GET | Peak booking hours | ✅ |
+| `/analytics/slot-usage-frequency/:venueId` | GET | Slot usage frequency | ✅ |
+| `/analytics/unused-slots/:venueId` | GET | Unused slots | ✅ |
+| `/analytics/unique-customers/:venueId` | GET | Unique customers | ✅ |
+| `/analytics/repeat-customers/:venueId` | GET | Repeat customers | ✅ |
+| `/analytics/top-customers/:venueId` | GET | Top customers | ✅ |
+| `/analytics/total-games-hosted/:venueId` | GET | Total games hosted | ✅ |
+| `/analytics/games-by-sport/:venueId` | GET | Games by sport | ✅ |
+| `/analytics/recent-bookings/:venueId` | GET | Recent bookings | ✅ |
+| `/sports/:venueId` | GET | Get sports offered by venue | ✅ |
+| `/sports` | POST | Add sport to venue | ✅ |
+| `/allSports` | GET | List all sports (for venue) | ✅ |
+| `/sports/:venueSportId` | DELETE | Delete venue sport | ✅ |
+| `/sports/:venueSportId` | PUT | Update venue sport | ✅ |
+| `/bookings/:venueId` | GET | Get venue bookings | ✅ |
+| `/bookings/:bookingId` | DELETE | Delete a booking | ✅ |
+| `/bookings/deactivate/:game_id` | PATCH | Deactivate a booking | ✅ |
+| `/bookings/payment-status/:bookingId` | PATCH | Update booking payment status | ✅ |
+| `/allVenueSlots/:venueId` | GET | Get all slots for venue | ✅ |
+| `/slots/available/:venueId` | GET | Get available slots by date | ❌ |
+| `/slots/:slotId` | DELETE | Delete a slot | ✅ |
+| `/slots/:slotId` | PATCH | Update a slot | ✅ |
+| `/slots` | POST | Create a new slot | ✅ |
+| `/allVenues` | GET | Get all venues | ❌ |
 
 **Features**:
 - Venue registration with owner details
 - JWT authentication for venue owners
 - Email verification
 - Profile image support
+- Venue image gallery management
+- Sports, slots, and booking management
+- Venue analytics and dashboards
+
+---
+
+#### 5. **Admin Routes** (`/api/v1/admin`)
+**File**: `routes/adminRouter.js`
+
+| Endpoint | Method | Description | Auth Required |
+|----------|--------|-------------|---------------|
+| `/admin-login` | POST | Admin login | ❌ |
+| `/getAllSports` | GET | Get all sports | ✅ |
+| `/addSport` | POST | Add a new sport | ✅ |
+| `/updateSport/:sport_id` | PATCH | Update sport by ID | ✅ |
+| `/deleteSport/:sport_id` | DELETE | Delete sport by ID | ✅ |
+| `/dashboard/stats` | GET | Dashboard statistics | ✅ |
+| `/dashboard/sport/metrics` | GET | Sport metrics | ✅ |
+| `/dashboard/booking/metrics` | GET | Booking metrics | ✅ |
+| `/dashboard/recent/activities` | GET | Recent activities | ✅ |
+| `/dashboard/booking/report` | GET | Booking report | ✅ |
+| `/dashboard/revenue/report` | GET | Revenue report | ✅ |
+| `/dashboard/user/report` | GET | User report | ✅ |
+| `/getAllUsers` | GET | Get all users | ❌ |
+| `/deleteUser/:user_id` | DELETE | Delete user | ✅ |
+| `/analytics/user-growth` | GET | User growth analytics | ✅ |
+| `/analytics/venue-growth` | GET | Venue growth analytics | ✅ |
+| `/analytics/booking-trend` | GET | Booking trend analytics | ✅ |
+| `/analytics/monthly-revenue` | GET | Monthly revenue analytics | ✅ |
+| `/analytics/revenue-by-venue` | GET | Revenue by venue | ✅ |
+| `/analytics/revenue-by-sport` | GET | Revenue by sport | ✅ |
+| `/analytics/most-played-sports` | GET | Most played sports | ✅ |
+| `/analytics/most-booked-venues` | GET | Most booked venues | ✅ |
+| `/analytics/peak-booking-hours` | GET | Peak booking hours | ✅ |
+| `/analytics/top-users-by-bookings` | GET | Top users by bookings | ✅ |
+| `/analytics/most-liked-posts` | GET | Most liked posts | ✅ |
+| `/analytics/top-content-creators` | GET | Top content creators | ✅ |
+| `/getVenues` | GET | Get all venues | ❌ |
+| `/deleteVenue/:venue_id` | DELETE | Delete venue | ✅ |
+| `/getAllPosts` | GET | Get all posts | ✅ |
+| `/deletePost/:post_id` | DELETE | Delete post | ✅ |
+
+**Features**:
+- Admin authentication with JWT
+- Dashboard stats, reports, and advanced analytics
+- User, venue, sport, and post management
+
+**Default Admin Credentials** (update for production):
+- Email: `admin@playmate.com`
+- Password: `admin@123`
 
 ---
 
@@ -278,7 +415,25 @@ The application exposes four main route groups:
 
 Controllers contain the business logic for handling API requests.
 
-#### 1. **authController.js**
+#### 1. **adminControllers.js**
+**Purpose**: Admin authentication, management, and analytics
+
+**Functions**:
+- `adminLogin(req, res)` - Admin login
+- `getDashboardStats(req, res)` - Admin dashboard KPIs
+- `getSportMetrics(req, res)` - Sports analytics
+- `getBookingMetrics(req, res)` - Booking analytics
+- `getRecentActivities(req, res)` - Recent booking activity
+- `getBookingReport(req, res)` - Booking report
+- `getRevenueReport(req, res)` - Revenue report
+- `getUserReport(req, res)` - User growth report
+- `getAllUsers(req, res)` - List users with sports
+- `deleteUser(req, res)` - Delete user
+- Advanced analytics (growth, trends, top venues/sports/users, posts)
+
+---
+
+#### 2. **authController.js**
 **Purpose**: Handles all authentication and user account management
 
 **Functions**:
@@ -316,7 +471,7 @@ Controllers contain the business logic for handling API requests.
 
 ---
 
-#### 2. **sportController.js**
+#### 3. **sportController.js**
 **Purpose**: Manages sports catalog
 
 **Functions**:
@@ -340,7 +495,7 @@ Controllers contain the business logic for handling API requests.
 
 ---
 
-#### 3. **userController.js**
+#### 4. **userController.js**
 **Purpose**: User profile and sport preferences management
 
 **Functions**:
@@ -365,7 +520,32 @@ Controllers contain the business logic for handling API requests.
 
 ---
 
-#### 4. **venueController.js**
+#### 5. **bookingController.js**
+**Purpose**: Bookings and payments
+
+**Functions**:
+- `venueBooking(req, res)` - Create booking and game
+- `createPaymentOrder(req, res)` - Create Razorpay order
+- `makePayment(req, res)` - Verify payment and mark booking paid
+- `allCreatedGames(req, res)` - List available games
+- `userJoinedGames(req, res)` - List joined games
+- `userGamesCreated(req, res)` - List games hosted by user
+
+---
+
+#### 6. **slotController.js**
+**Purpose**: Slot management for venues
+
+**Functions**:
+- `addNewSlot(req, res)` - Create slot
+- `editSlot(req, res)` - Update slot
+- `deleteSlot(req, res)` - Delete slot
+- `getAllSlotsOfVenue(req, res)` - List venue slots
+- `getAvailableSlotsByVenueAndDate(req, res)` - Availability by date
+
+---
+
+#### 7. **venueController.js**
 **Purpose**: Venue registration and authentication
 
 **Functions**:
@@ -393,6 +573,7 @@ Models represent database entities and provide an abstraction layer for database
 CREATE TABLE users (
     user_id INT AUTO_INCREMENT PRIMARY KEY,
     user_email VARCHAR(100) NOT NULL UNIQUE,
+    phone_number VARCHAR(15) NULL,
     user_password VARCHAR(61) NOT NULL,
     first_name VARCHAR(50) NOT NULL,
     last_name VARCHAR(50) NULL,
@@ -500,7 +681,7 @@ CREATE TABLE venues (
 ---
 
 #### 5. **VenueSport.js**
-**Purpose**: Venue-Sport relationship with pricing
+**Purpose**: Venue-Sport relationship
 
 **Schema**:
 ```sql
@@ -508,7 +689,6 @@ CREATE TABLE venue_sports (
     venue_sport_id INT AUTO_INCREMENT PRIMARY KEY,
     venue_id INT NOT NULL,
     sport_id INT NOT NULL,
-    price_per_hour DECIMAL(10,2) NOT NULL CHECK (price_per_hour >= 0),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (venue_id) REFERENCES venues(venue_id) ON DELETE CASCADE,
     FOREIGN KEY (sport_id) REFERENCES sports(sport_id) ON DELETE CASCADE,
@@ -526,10 +706,152 @@ CREATE TABLE venue_sports (
 
 ---
 
-#### 6. **VenueSportCourt.js**
+#### 6. **Slot.js**
+**Purpose**: Slot management for venue sports
+
+**Schema**:
+```sql
+CREATE TABLE slots (
+  slot_id INT AUTO_INCREMENT PRIMARY KEY,
+  venue_sport_id INT NOT NULL,
+  start_time TIME NOT NULL,
+  end_time TIME NOT NULL,
+  price_per_slot DECIMAL(10,2) CHECK (price_per_slot >= 0),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (venue_sport_id) REFERENCES venue_sports(venue_sport_id) ON DELETE CASCADE
+);
+```
+
+---
+
+#### 7. **Games.js**
+**Purpose**: Games created when a booking is made
+
+**Schema**:
+```sql
+CREATE TABLE games (
+  game_id INT AUTO_INCREMENT PRIMARY KEY,
+  sport_id INT NOT NULL,
+  venue_id INT NOT NULL,
+  start_datetime DATETIME NOT NULL,
+  end_datetime DATETIME NOT NULL,
+  host_user_id INT NOT NULL,
+  price_per_hour DECIMAL(10,2) NOT NULL,
+  status VARCHAR(45) DEFAULT 'active',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (sport_id) REFERENCES sports(sport_id) ON DELETE CASCADE,
+  FOREIGN KEY (venue_id) REFERENCES venues(venue_id) ON DELETE CASCADE,
+  FOREIGN KEY (host_user_id) REFERENCES users(user_id) ON DELETE CASCADE
+);
+```
+
+---
+
+#### 8. **Booking.js**
+**Purpose**: Venue bookings linked to games
+
+**Schema**:
+```sql
+CREATE TABLE bookings (
+  booking_id INT AUTO_INCREMENT PRIMARY KEY,
+  slot_id INT NULL,
+  venue_id INT NOT NULL,
+  venue_sport_id INT NOT NULL,
+  user_id INT NOT NULL,
+  game_id INT NOT NULL,
+  start_datetime DATETIME NOT NULL,
+  end_datetime DATETIME NOT NULL,
+  total_price DECIMAL(10,2) CHECK (total_price >= 0),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  payment ENUM('unpaid', 'paid') DEFAULT 'unpaid',
+  UNIQUE KEY uniq_booking_slot_time (slot_id, venue_id, start_datetime, end_datetime),
+  FOREIGN KEY (slot_id) REFERENCES slots(slot_id) ON DELETE SET NULL,
+  FOREIGN KEY (venue_id) REFERENCES venues(venue_id) ON DELETE CASCADE,
+  FOREIGN KEY (venue_sport_id) REFERENCES venue_sports(venue_sport_id) ON DELETE CASCADE,
+  FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+  FOREIGN KEY (game_id) REFERENCES games(game_id) ON DELETE CASCADE
+);
+```
+
+---
+
+#### 9. **Post.js**
+**Purpose**: Social posts and likes
+
+**Schema**:
+```sql
+CREATE TABLE posts (
+  post_id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  text_content TEXT NULL,
+  media_url VARCHAR(255) DEFAULT '',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+);
+
+CREATE TABLE post_likes (
+  post_id INT NOT NULL,
+  user_id INT NOT NULL,
+  liked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (post_id, user_id),
+  FOREIGN KEY (post_id) REFERENCES posts(post_id) ON DELETE CASCADE,
+  FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+);
+```
+
+---
+
+#### 10. **game_player.js**
+**Purpose**: Game player requests and approvals
+
+**Schema**:
+```sql
+CREATE TABLE game_players (
+  game_player_id INT NOT NULL AUTO_INCREMENT,
+  game_id INT NOT NULL,
+  user_id INT NOT NULL,
+  status ENUM('Pending','Approved','Rejected') NULL,
+  joined_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (game_player_id),
+  UNIQUE KEY uniq_game_player (game_id, user_id),
+  FOREIGN KEY (game_id) REFERENCES games(game_id) ON DELETE CASCADE,
+  FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+);
+```
+
+---
+
+#### 11. **VenueImages.js**
+**Purpose**: Venue gallery images
+
+**Schema**:
+```sql
+CREATE TABLE venue_images (
+  venue_image_id INT AUTO_INCREMENT PRIMARY KEY,
+  venue_id INT NOT NULL,
+  image_url VARCHAR(255) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (venue_id) REFERENCES venues(venue_id) ON DELETE CASCADE
+);
+```
+
+---
+
+#### 12. **VenueSportCourt.js (Planned)**
 **Purpose**: Court/facility management for venue sports
 
-**Note**: Implementation details in the model file.
+**Planned Schema**:
+```sql
+CREATE TABLE venue_sport_courts (
+  court_id INT AUTO_INCREMENT PRIMARY KEY,
+  venue_sport_id INT NOT NULL,
+  court_name VARCHAR(50) NOT NULL,
+  status ENUM('available', 'occupied', 'maintenance') DEFAULT 'available',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (venue_sport_id) REFERENCES venue_sports(venue_sport_id) ON DELETE CASCADE,
+  INDEX idx_venue_sport (venue_sport_id)
+);
+```
 
 ---
 
@@ -814,6 +1136,10 @@ EMAIL_PASSWORD=your_app_specific_password
 EMAIL_SERVICE=Gmail
 EMAIL_FROM_NAME=Playmate
 
+# Razorpay Configuration
+RAZORPAY_KEY_ID=your_razorpay_key_id
+RAZORPAY_KEY_SECRET=your_razorpay_key_secret
+
 # Upload Configuration
 MAX_FILE_SIZE=5242880
 ALLOWED_FILE_TYPES=image/jpeg,image/png,image/jpg
@@ -875,10 +1201,13 @@ Base Path: `/api/v1/sports`
 | Endpoint | Method | Description | Auth | Body/Params |
 |----------|--------|-------------|------|-------------|
 | `/health` | GET | Sports service health check | ❌ | - |
-| `/addNewSport` | POST | Create new sport | ✅ | `sport_name` |
+| `/addNewSport` | POST | Create new sport | ❌ | `sport_name` |
 | `/getAllSports` | GET | List all sports | ❌ | - |
-| `/updateSport/:sportId` | PUT | Update sport by ID | ✅ | `sport_name` |
-| `/deleteSport/:sportId` | DELETE | Delete sport by ID | ✅ | - |
+| `/updateSport/:sportId` | PUT | Update sport by ID | ❌ | `sport_name` |
+| `/deleteSport/:sportId` | DELETE | Delete sport by ID | ❌ | - |
+| `/addUserSport` | POST | Add sport to user with skill level | ✅ | `user_id`, `sport_id`, `skill_level?` |
+| `/getUserSports/:userId` | GET | Get sports for a user | ✅ | - |
+| `/deleteUserSport/:userSportId` | DELETE | Remove user sport by ID | ✅ | - |
 
 ---
 
@@ -891,6 +1220,23 @@ Base Path: `/api/v1/user`
 | `/userSport` | POST | Add sport to user profile | ✅ | `user_id`, `sport_id`, `skill_level?` |
 | `/deleteUserSport/:user_id/:sport_id` | DELETE | Remove sport from user | ✅ | - |
 | `/profile/:userId` | GET | Get user profile with sports | ✅ | - |
+| `/userPosts/:userId` | GET | Get posts by user | ✅ | - |
+| `/createPost/:userId` | POST | Create post | ✅ | `text_content?`, `media_url?` (multipart) |
+| `/deletePost/:postId/:userId` | DELETE | Delete post | ✅ | - |
+| `/toggle/:postId/:userId` | POST | Like/unlike post | ✅ | - |
+| `/getPostLikes/:postId` | GET | Get post likes | ✅ | - |
+| `/recentActivities/:userId` | GET | Recent activity feed | ✅ | `page?`, `limit?` |
+| `/venueBooking` | POST | Book a venue slot | ✅ | `sport_id`, `venue_id`, `slot_id`, `start_datetime`, `end_datetime`, `host_id`, `price`, `payment?` |
+| `/payments/order` | POST | Create Razorpay order | ✅ | `amount`, `currency?`, `receipt?` |
+| `/payments/complete/:gameId` | POST | Complete payment | ✅ | `payment` payload |
+| `/allGames` | GET | Get all games | ✅ | - |
+| `/joinedGames` | GET | Get joined games | ✅ | - |
+| `/usersCreatedGames` | GET | Get user-created games | ✅ | - |
+| `/joinGame/:userId/:gameId` | POST | Join game | ✅ | - |
+| `/leaveGame/:userId/:gameId` | DELETE | Leave game | ✅ | - |
+| `/getPlayersByGameId/:gameId` | GET | Get approved players | ✅ | - |
+| `/requestedUserList/:gameId` | GET | Get pending player requests | ✅ | - |
+| `/updateGamePlayerStatus` | PATCH | Approve/reject player | ✅ | `game_player_id`, `user_id`, `status` |
 
 **Skill Levels**: `Beginner`, `Intermediate`, `Pro`
 
@@ -903,6 +1249,79 @@ Base Path: `/api/v1/venue`
 |----------|--------|-------------|------|-------------|
 | `/register` | POST | Register new venue | ❌ | `email`, `password`, `first_name`, `last_name?`, `phone`, `venue_name`, `address`, `profile_image?` |
 | `/login` | POST | Venue login | ❌ | `email`, `password` |
+| `/venueImage/upload/:venueId` | POST | Upload venue image | ✅ | `venue_image` (multipart) |
+| `/venueImages/:venueId` | GET | Get venue images | ✅ | - |
+| `/venueImage/:venueImageId` | DELETE | Delete venue image | ✅ | - |
+| `/profile/:venueId` | GET | Get venue profile | ✅ | - |
+| `/profile/:venueId` | PUT | Update venue profile | ✅ | `first_name?`, `last_name?`, `phone?`, `venue_name?`, `address?`, `profile_image?` |
+| `/dashboard/stats/:venueId` | GET | Venue dashboard stats | ✅ | - |
+| `/analytics/daily-booking-trend/:venueId` | GET | Daily booking trend | ✅ | - |
+| `/analytics/monthly-revenue-trend/:venueId` | GET | Monthly revenue trend | ✅ | - |
+| `/analytics/revenue-by-sport/:venueId` | GET | Revenue by sport | ✅ | - |
+| `/analytics/revenue-by-slot/:venueId` | GET | Revenue by slot | ✅ | - |
+| `/analytics/most-booked-slots/:venueId` | GET | Most booked slots | ✅ | - |
+| `/analytics/peak-booking-hours/:venueId` | GET | Peak booking hours | ✅ | - |
+| `/analytics/slot-usage-frequency/:venueId` | GET | Slot usage frequency | ✅ | - |
+| `/analytics/unused-slots/:venueId` | GET | Unused slots | ✅ | - |
+| `/analytics/unique-customers/:venueId` | GET | Unique customers | ✅ | - |
+| `/analytics/repeat-customers/:venueId` | GET | Repeat customers | ✅ | - |
+| `/analytics/top-customers/:venueId` | GET | Top customers | ✅ | - |
+| `/analytics/total-games-hosted/:venueId` | GET | Total games hosted | ✅ | - |
+| `/analytics/games-by-sport/:venueId` | GET | Games by sport | ✅ | - |
+| `/analytics/recent-bookings/:venueId` | GET | Recent bookings | ✅ | `limit?` |
+| `/sports/:venueId` | GET | Get venue sports | ✅ | - |
+| `/sports` | POST | Add sport to venue | ✅ | `venue_id`, `sport_id` |
+| `/allSports` | GET | List all sports | ✅ | - |
+| `/sports/:venueSportId` | PUT | Update venue sport | ✅ | `sport_id` |
+| `/sports/:venueSportId` | DELETE | Delete venue sport | ✅ | - |
+| `/bookings/:venueId` | GET | Get venue bookings | ✅ | - |
+| `/bookings/:bookingId` | DELETE | Delete booking | ✅ | - |
+| `/bookings/deactivate/:game_id` | PATCH | Deactivate booking | ✅ | - |
+| `/bookings/payment-status/:bookingId` | PATCH | Update booking payment | ✅ | - |
+| `/allVenueSlots/:venueId` | GET | Get venue slots | ✅ | - |
+| `/slots/available/:venueId` | GET | Get available slots by date | ❌ | `date`, `sportId` |
+| `/slots` | POST | Create slot | ✅ | `venue_sport_id`, `start_time`, `end_time`, `price_per_slot` |
+| `/slots/:slotId` | PATCH | Update slot | ✅ | `venue_sport_id?`, `start_time?`, `end_time?`, `price_per_slot?` |
+| `/slots/:slotId` | DELETE | Delete slot | ✅ | - |
+| `/allVenues` | GET | Get all venues | ❌ | - |
+
+---
+
+#### Admin Management & Analytics
+Base Path: `/api/v1/admin`
+
+| Endpoint | Method | Description | Auth | Body/Params |
+|----------|--------|-------------|------|-------------|
+| `/admin-login` | POST | Admin login | ❌ | `email`, `password` |
+| `/getAllSports` | GET | Get all sports | ✅ | - |
+| `/addSport` | POST | Add a sport | ✅ | `sport_name` |
+| `/updateSport/:sport_id` | PATCH | Update sport | ✅ | `sport_name` |
+| `/deleteSport/:sport_id` | DELETE | Delete sport | ✅ | - |
+| `/dashboard/stats` | GET | Dashboard stats | ✅ | - |
+| `/dashboard/sport/metrics` | GET | Sport metrics | ✅ | - |
+| `/dashboard/booking/metrics` | GET | Booking metrics | ✅ | - |
+| `/dashboard/recent/activities` | GET | Recent activities | ✅ | - |
+| `/dashboard/booking/report` | GET | Booking report | ✅ | - |
+| `/dashboard/revenue/report` | GET | Revenue report | ✅ | - |
+| `/dashboard/user/report` | GET | User report | ✅ | - |
+| `/getAllUsers` | GET | Get all users | ❌ | - |
+| `/deleteUser/:user_id` | DELETE | Delete user | ✅ | - |
+| `/analytics/user-growth` | GET | User growth report | ✅ | - |
+| `/analytics/venue-growth` | GET | Venue growth report | ✅ | - |
+| `/analytics/booking-trend` | GET | Booking trend report | ✅ | - |
+| `/analytics/monthly-revenue` | GET | Monthly revenue report | ✅ | - |
+| `/analytics/revenue-by-venue` | GET | Revenue by venue | ✅ | - |
+| `/analytics/revenue-by-sport` | GET | Revenue by sport | ✅ | - |
+| `/analytics/most-played-sports` | GET | Most played sports | ✅ | - |
+| `/analytics/most-booked-venues` | GET | Most booked venues | ✅ | - |
+| `/analytics/peak-booking-hours` | GET | Peak booking hours | ✅ | - |
+| `/analytics/top-users-by-bookings` | GET | Top users by bookings | ✅ | - |
+| `/analytics/most-liked-posts` | GET | Most liked posts | ✅ | - |
+| `/analytics/top-content-creators` | GET | Top content creators | ✅ | - |
+| `/getVenues` | GET | Get all venues | ❌ | - |
+| `/deleteVenue/:venue_id` | DELETE | Delete venue | ✅ | - |
+| `/getAllPosts` | GET | Get all posts | ✅ | - |
+| `/deletePost/:post_id` | DELETE | Delete post | ✅ | - |
 
 ---
 
@@ -1004,16 +1423,28 @@ The Playmate API uses MySQL 8.0+ with a relational database schema designed for 
 ┌─────────────┐         ┌──────────────┐         ┌─────────────┐
 │   Users     │◄───────►│ User_Sports  │◄───────►│   Sports    │
 └─────────────┘         └──────────────┘         └─────────────┘
-                                                         ▲
-                                                         │
-                        ┌──────────────┐                │
-                        │Venue_Sports  │◄───────────────┘
-                        └──────────────┘
-                               ▲
-                               │
-                        ┌─────────────┐
-                        │   Venues    │
-                        └─────────────┘
+  │   ▲                                         ▲
+  │   │                                         │
+  │   └───────────────┐                         │
+  │                   │                         │
+┌─────────────┐     ┌──────────────┐         ┌──────────────┐
+│   Posts     │◄────│  Post_Likes  │         │ Venue_Sports │◄──────────────┐
+└─────────────┘     └──────────────┘         └──────────────┘               │
+  ▲                                                     ▲               │
+  │                                                     │               │
+┌─────────────┐                                         ┌─────────────┐    │
+│ GamePlayers │◄────────────┐                           │   Slots     │    │
+└─────────────┘             │                           └─────────────┘    │
+  ▲                      │                                   ▲          │
+  │                      │                                   │          │
+┌─────────────┐     ┌─────────────┐                       ┌─────────────┐   │
+│   Games     │◄────│  Bookings   │──────────────────────►│   Venues    │◄──┘
+└─────────────┘     └─────────────┘                       └─────────────┘
+                        ▲
+                        │
+                       ┌─────────────┐
+                       │ VenueImages │
+                       └─────────────┘
 ```
 
 ### Tables
@@ -1025,6 +1456,7 @@ Stores user account information and authentication credentials.
 CREATE TABLE users (
     user_id INT AUTO_INCREMENT PRIMARY KEY,
     user_email VARCHAR(100) NOT NULL UNIQUE,
+  phone_number VARCHAR(15) NULL,
     user_password VARCHAR(61) NOT NULL,
     first_name VARCHAR(50) NOT NULL,
     last_name VARCHAR(50) NULL,
@@ -1040,6 +1472,7 @@ CREATE TABLE users (
 - `user_password`: Bcrypt hashed password (60 chars + 1 for null terminator)
 - `first_name`: Required, 1-50 characters
 - `last_name`: Optional, 1-50 characters
+- `phone_number`: Optional contact number
 - `profile_image`: Cloudinary URL or default image
 - `created_at`: Registration timestamp
 
@@ -1154,14 +1587,13 @@ CREATE TABLE venues (
 ---
 
 #### 5. **venue_sports**
-Many-to-many relationship between venues and sports with pricing.
+Many-to-many relationship between venues and sports.
 
 ```sql
 CREATE TABLE venue_sports (
     venue_sport_id INT AUTO_INCREMENT PRIMARY KEY,
     venue_id INT NOT NULL,
     sport_id INT NOT NULL,
-    price_per_hour DECIMAL(10,2) NOT NULL CHECK (price_per_hour >= 0),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (venue_id) REFERENCES venues(venue_id) ON DELETE CASCADE,
     FOREIGN KEY (sport_id) REFERENCES sports(sport_id) ON DELETE CASCADE,
@@ -1175,7 +1607,6 @@ CREATE TABLE venue_sports (
 - `venue_sport_id`: Primary key, auto-increment
 - `venue_id`: Foreign key to venues table
 - `sport_id`: Foreign key to sports table
-- `price_per_hour`: Hourly rate (must be ≥ 0)
 - `created_at`: Association timestamp
 
 **Indexes**:
@@ -1187,13 +1618,137 @@ CREATE TABLE venue_sports (
 - INDEX on `sport_id`
 
 **Constraints**:
-- `price_per_hour` must be non-negative
 - A venue can only offer a sport once
 - Deleting a venue removes all sport associations
 
 ---
 
-#### 6. **venue_sport_courts**
+#### 6. **slots**
+Time slots associated with venue sports.
+
+```sql
+CREATE TABLE slots (
+  slot_id INT AUTO_INCREMENT PRIMARY KEY,
+  venue_sport_id INT NOT NULL,
+  start_time TIME NOT NULL,
+  end_time TIME NOT NULL,
+  price_per_slot DECIMAL(10,2) CHECK (price_per_slot >= 0),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (venue_sport_id) REFERENCES venue_sports(venue_sport_id) ON DELETE CASCADE
+);
+```
+
+---
+
+#### 7. **games**
+Game sessions created for bookings.
+
+```sql
+CREATE TABLE games (
+  game_id INT AUTO_INCREMENT PRIMARY KEY,
+  sport_id INT NOT NULL,
+  venue_id INT NOT NULL,
+  start_datetime DATETIME NOT NULL,
+  end_datetime DATETIME NOT NULL,
+  host_user_id INT NOT NULL,
+  price_per_hour DECIMAL(10,2) NOT NULL,
+  status VARCHAR(45) DEFAULT 'active',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (sport_id) REFERENCES sports(sport_id) ON DELETE CASCADE,
+  FOREIGN KEY (venue_id) REFERENCES venues(venue_id) ON DELETE CASCADE,
+  FOREIGN KEY (host_user_id) REFERENCES users(user_id) ON DELETE CASCADE
+);
+```
+
+---
+
+#### 8. **bookings**
+Bookings linked to games and slots.
+
+```sql
+CREATE TABLE bookings (
+  booking_id INT AUTO_INCREMENT PRIMARY KEY,
+  slot_id INT NULL,
+  venue_id INT NOT NULL,
+  venue_sport_id INT NOT NULL,
+  user_id INT NOT NULL,
+  game_id INT NOT NULL,
+  start_datetime DATETIME NOT NULL,
+  end_datetime DATETIME NOT NULL,
+  total_price DECIMAL(10,2) CHECK (total_price >= 0),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  payment ENUM('unpaid', 'paid') DEFAULT 'unpaid',
+  UNIQUE KEY uniq_booking_slot_time (slot_id, venue_id, start_datetime, end_datetime),
+  FOREIGN KEY (slot_id) REFERENCES slots(slot_id) ON DELETE SET NULL,
+  FOREIGN KEY (venue_id) REFERENCES venues(venue_id) ON DELETE CASCADE,
+  FOREIGN KEY (venue_sport_id) REFERENCES venue_sports(venue_sport_id) ON DELETE CASCADE,
+  FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+  FOREIGN KEY (game_id) REFERENCES games(game_id) ON DELETE CASCADE
+);
+```
+
+---
+
+#### 9. **posts** and **post_likes**
+Social posts and likes.
+
+```sql
+CREATE TABLE posts (
+  post_id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  text_content TEXT NULL,
+  media_url VARCHAR(255) DEFAULT '',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+);
+
+CREATE TABLE post_likes (
+  post_id INT NOT NULL,
+  user_id INT NOT NULL,
+  liked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (post_id, user_id),
+  FOREIGN KEY (post_id) REFERENCES posts(post_id) ON DELETE CASCADE,
+  FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+);
+```
+
+---
+
+#### 10. **game_players**
+Players and approvals for games.
+
+```sql
+CREATE TABLE game_players (
+  game_player_id INT NOT NULL AUTO_INCREMENT,
+  game_id INT NOT NULL,
+  user_id INT NOT NULL,
+  status ENUM('Pending','Approved','Rejected') NULL,
+  joined_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (game_player_id),
+  UNIQUE KEY uniq_game_player (game_id, user_id),
+  FOREIGN KEY (game_id) REFERENCES games(game_id) ON DELETE CASCADE,
+  FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+);
+```
+
+---
+
+#### 11. **venue_images**
+Venue gallery images.
+
+```sql
+CREATE TABLE venue_images (
+  venue_image_id INT AUTO_INCREMENT PRIMARY KEY,
+  venue_id INT NOT NULL,
+  image_url VARCHAR(255) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (venue_id) REFERENCES venues(venue_id) ON DELETE CASCADE
+);
+```
+
+---
+
+#### 12. **venue_sport_courts**
 Court/facility management for venue sports (implementation in progress).
 
 **Purpose**: Tracks individual courts/fields within a venue for a specific sport.
@@ -1224,6 +1779,12 @@ Sport.createTable().catch(console.error);
 UserSport.createTable().catch(console.error);
 Venue.createTable().catch(console.error);
 VenueSport.createTable().catch(console.error);
+Slot.createTable().catch(console.error);
+Games.createTable().catch(console.error);
+Booking.createTable().catch(console.error);
+Post.createTable().catch(console.error);
+VenueImages.createTable().catch(console.error);
+GamePlayer.createTable().catch(console.error);
 ```
 
 ### Migration Strategy
@@ -1378,11 +1939,13 @@ For detailed deployment guide, see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
 
 ## 🗺️ Roadmap
 
-### Version 1.1.0 (Q1 2025)
-- [ ] Sport management endpoints
-- [ ] User sports endpoints
-- [ ] Enhanced user profile management
-- [ ] Profile image update endpoint
+### Current Implementation Highlights
+- [x] Sport management endpoints
+- [x] User sports endpoints
+- [x] Profile updates with image upload
+- [x] Bookings, payments, and slots
+- [x] Social posts and likes
+- [x] Admin and venue analytics
 
 ### Version 1.2.0 (Q2 2025)
 - [ ] User matching algorithm
