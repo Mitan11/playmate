@@ -616,7 +616,7 @@ const getTopCustomers = async (req, res) => {
             JOIN bookings b ON u.user_id = b.user_id
             WHERE b.venue_id = ?
             GROUP BY u.user_id
-            ORDER BY bookings_count DESC
+            ORDER BY bookings_count DESC limit 5
         `, [venueId]);
 
         await connection.commit();
