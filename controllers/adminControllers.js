@@ -585,7 +585,7 @@ const getTopUsersByBookings = async (req, res) => {
             FROM users u
             JOIN bookings b ON u.user_id = b.user_id
             GROUP BY u.user_id
-            ORDER BY total_bookings DESC
+            ORDER BY total_bookings DESC LIMIT 5
         `);
         res.json(Response.success(200, "Top users by bookings report fetched successfully", rows));
     } catch (err) {
@@ -602,12 +602,16 @@ const getMostLikedPosts = async (req, res) => {
                 p.post_id,
                 u.first_name,
                 u.last_name,
+                p.text_content,
+                p.media_url,
+                p.created_at,
                 COUNT(pl.user_id) AS likes
             FROM posts p
             JOIN users u ON p.user_id = u.user_id
             LEFT JOIN post_likes pl ON p.post_id = pl.post_id
             GROUP BY p.post_id
             ORDER BY likes DESC
+            LIMIT 5
         `);
         res.json(Response.success(200, "Most liked posts report fetched successfully", rows));
     } catch (err) {
@@ -627,7 +631,7 @@ const getTopContentCreators = async (req, res) => {
             FROM users u
             JOIN posts p ON u.user_id = p.user_id
             GROUP BY u.user_id
-            ORDER BY posts_count DESC
+            ORDER BY posts_count DESC LIMIT 5
         `);
         res.json(Response.success(200, "Top content creators report fetched successfully", rows));
     } catch (err) {
