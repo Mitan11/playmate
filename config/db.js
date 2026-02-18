@@ -11,8 +11,32 @@ const dbConfig = {
     connectionLimit: 3,
     queueLimit: 0,
 };
+// Use a cached pool instance in serverless environments like Vercel
+// so we don't create a new pool (and exhaust connections) on every cold start.
+let cachedPool = globalThis._playmateDbPool;
 
-// Create connection pool
-const db = mysql.createPool(dbConfig);
+if (!cachedPool) {
+    cachedPool = mysql.createPool(dbConfig);
+    globalThis._playmateDbPool = cachedPool;
+}
 
-export default db;
+// Convenience helper that returns only the rows for simple read/write queries.
+// Usage:
+//   const users = await query('SELECT * FROM users WHERE email = ?', [email]);
+export async function query(sql, params = []) {
+    const [rows] = await cachedPool.query(sql, params);
+    return rows;
+}
+
+// Helper to get a dedicated connection for transactions.
+// This keeps compatibility with existing `const connection = await db.getConnection();`
+// patterns in your controllers.
+export function getConnection() {
+    return cachedPool.getConnection();
+}
+
+// Default export remains the pool for backward compatibility:
+// - db.query(...)
+// - db.execute(...)
+// - db.getConnection()
+export default cachedPool;
