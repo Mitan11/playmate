@@ -7,6 +7,7 @@ class GamePlayer {
 		this.user_id = data.user_id;
 		this.status = data.status;
 		this.joined_at = data.joined_at;
+        this.notification_status = data.notification_status;
 	}
 
 	static async createTable() {
@@ -17,6 +18,7 @@ class GamePlayer {
 				user_id INT NOT NULL,
 				status ENUM('Pending','Approved','Rejected') NULL,
 				joined_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+                notification_status TINYINT(1) NOT NULL DEFAULT 0,
 				PRIMARY KEY (game_player_id),
 				UNIQUE KEY uniq_game_player (game_id, user_id),
 				KEY game_id (game_id),
@@ -32,6 +34,16 @@ class GamePlayer {
 
 		try {
 			await db.execute(query);
+
+			const [columns] = await db.execute(
+				`SHOW COLUMNS FROM game_players LIKE 'notification_status'`
+			);
+			if (!columns.length) {
+				await db.execute(
+					`ALTER TABLE game_players ADD COLUMN notification_status TINYINT(1) NOT NULL DEFAULT 0`
+				);
+			}
+
 			console.log('Game players table created or already exists');
 		} catch (error) {
 			console.error('Error creating game players table:', error);
@@ -40,13 +52,13 @@ class GamePlayer {
 	}
 
 	static async save(data, conn = db) {
-		const { game_id, user_id, status = 'Pending' } = data;
+        const { game_id, user_id, status = 'Pending', notification_status = 0 } = data;
 
-		const [result] = await conn.execute(
-			`INSERT INTO game_players (game_id, user_id, status) VALUES (?, ?, ?)`,
-			[game_id, user_id, status]
-		);
-		return await GamePlayer.findById(result.insertId, conn);
+        const [result] = await conn.execute(
+            `INSERT INTO game_players (game_id, user_id, status, notification_status) VALUES (?, ?, ?, ?)`,
+            [game_id, user_id, status, notification_status]
+        );
+        return await GamePlayer.findById(result.insertId, conn);
 	}
 
 	static async findById(id, conn = db) {

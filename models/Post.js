@@ -35,6 +35,7 @@ class Post {
                 post_id INT NOT NULL,
                 user_id INT NOT NULL,
                 liked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                notification_status TINYINT(1) NOT NULL DEFAULT 0,
                 PRIMARY KEY (post_id, user_id),
                 INDEX idx_post_id (post_id),
                 INDEX idx_user_id (user_id),
@@ -47,6 +48,16 @@ class Post {
             await db.execute(postsQuery);
             console.log('Posts table created or already exists');
             await db.execute(postLikesQuery);
+
+            const [columns] = await db.execute(
+                `SHOW COLUMNS FROM post_likes LIKE 'notification_status'`
+            );
+            if (!columns.length) {
+                await db.execute(
+                    `ALTER TABLE post_likes ADD COLUMN notification_status TINYINT(1) NOT NULL DEFAULT 0`
+                );
+            }
+
             console.log('Post likes table created or already exists');
         } catch (error) {
             console.error('Error creating posts/post_likes tables:', error);
@@ -171,7 +182,7 @@ class Post {
     static async likePost(postId, userId, conn = db) {
         try {
             const [result] = await conn.execute(
-                'INSERT INTO post_likes (post_id, user_id) VALUES (?, ?)',
+                'INSERT INTO post_likes (post_id, user_id, notification_status) VALUES (?, ?, 0)',
                 [postId, userId]
             );
             return result.affectedRows > 0;

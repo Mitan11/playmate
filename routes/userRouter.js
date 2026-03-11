@@ -1,5 +1,5 @@
 import express from 'express';
-import { addUserSport, createPost, deletePost, deleteUserSport, getPostLikes, joinGame, leaveGame, makePayment, playerJoinedList, recentActivity, requestedPlayersList, toggleLike, updateGamePlayerStatus, updateUserDetails, userPosts, userProfile } from '../controllers/userController.js';
+import { addUserSport, createPost, deletePost, deleteUserSport, getAllNotifications, getPostLikes, joinGame, leaveGame, makePayment, markNotificationsAsSeen, markPostLikeNotificationsAsSeen, playerJoinedList, recentActivity, requestedPlayersList, saveUserFcmToken, toggleLike, updateGamePlayerStatus, updateUserDetails, userPosts, userProfile } from '../controllers/userController.js';
 import { handleValidationErrors } from '../middleware/validation.js';
 import upload from '../middleware/multer.js';
 import { verifyToken } from '../middleware/authUser.js';
@@ -33,6 +33,12 @@ userRouter.get('/profile/:userId', verifyToken, (req, res) => {
     // #swagger.tags = ['User']
     // #swagger.description = 'Get user profile by ID'
     userProfile(req, res);
+});
+
+userRouter.patch('/fcm-token/:userId', verifyToken, (req, res) => {
+    // #swagger.tags = ['User']
+    // #swagger.description = 'Save/update user FCM token for push notifications'
+    saveUserFcmToken(req, res);
 });
 
 userRouter.get('/userPosts/:userId', verifyToken, (req, res) => {
@@ -142,6 +148,24 @@ userRouter.patch('/updateGamePlayerStatus', verifyToken, (req, res) => {
     // #swagger.description = 'Update game player status'
     // Implementation of updateGamePlayerStatus function is assumed to be present
     updateGamePlayerStatus(req, res);
+});
+
+userRouter.patch('/notifications/joinrequest/markAsSeen', verifyToken, (req, res) => {
+    // #swagger.tags = ['User']
+    // #swagger.description = 'Mark join request notifications as seen'
+    markNotificationsAsSeen(req, res);
+});
+
+userRouter.patch('/notifications/postLike/markAsSeen', verifyToken, (req, res) => {
+    // #swagger.tags = ['User']
+    // #swagger.description = 'Mark post like notifications as seen'
+    markPostLikeNotificationsAsSeen(req, res);
+});
+
+userRouter.get('/notifications/all', verifyToken, (req, res) => {
+    // #swagger.tags = ['User']
+    // #swagger.description = 'Get all notifications (game join requests and post likes)'
+    getAllNotifications(req, res);
 });
 
 export default userRouter;

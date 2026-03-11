@@ -12,6 +12,7 @@ import Venue from "../models/Venue.js";
 import Sport from "../models/Sport.js";
 import { bookingReceiptTemplate } from "../utils/emailTemplates.js";
 import { sendEmail } from "../utils/Mail.js";
+import { sendPushNotification } from "../utils/pushNotification.js";
 
 const verifyRazorpaySignature = (orderId, paymentId, signature) => {
     const { RAZORPAY_KEY_SECRET } = process.env;
@@ -97,6 +98,39 @@ const updateUserDetails = async (req, res) => {
     }
 }
 
+const saveUserFcmToken = async (req, res) => {
+    const connection = await db.getConnection();
+    try {
+        const { userId } = req.params;
+        const { fcm_token } = req.body || {};
+
+        if (!userId || isNaN(userId)) {
+            return res.status(400).json(Response.error(400, "Invalid user ID"));
+        }
+
+        if (!fcm_token || typeof fcm_token !== "string") {
+            return res.status(400).json(Response.error(400, "Valid fcm_token is required"));
+        }
+
+        const userRows = await User.findById(userId, connection);
+        const user = Array.isArray(userRows) ? userRows[0] : userRows;
+        if (!user) {
+            return res.status(404).json(Response.error(404, "User not found"));
+        }
+
+        await User.updateFcmToken(userId, fcm_token, connection);
+
+        return res.status(200).json(
+            Response.success(200, "FCM token saved successfully", { user_id: Number(userId) })
+        );
+    } catch (error) {
+        console.error("Error saving FCM token:", error);
+        return res.status(500).json(Response.error(500, "Internal Server Error"));
+    } finally {
+        connection.release();
+    }
+}
+
 const addUserSport = async (req, res) => {
     const connection = await db.getConnection();
     try {
@@ -142,7 +176,8 @@ const userProfile = async (req, res) => {
             return res.status(400).json(Response.error(400, "Invalid user ID"));
         }
 
-        const user = await User.findById(userId, connection);
+        const userRows = await User.findById(userId, connection);
+        const user = Array.isArray(userRows) ? userRows[0] : userRows;
 
         res.status(200).json(Response.success(200, "User retrieved successfully", user));
 
@@ -330,6 +365,9 @@ const toggleLike = async (req, res) => {
             return res.status(400).json(Response.error(400, "Invalid user ID"));
         }
 
+        const userRows = await User.findById(userId, connection);
+        const user = Array.isArray(userRows) ? userRows[0] : userRows;
+
         // Check if post exists
         const existingPost = await Post.findById(postId, connection);
         if (!existingPost) {
@@ -349,6 +387,25 @@ const toggleLike = async (req, res) => {
             // Like the post
             await Post.likePost(postId, userId, connection);
             message = "Post liked successfully";
+
+            // Send notification only to the user who owns the liked post.
+            const postOwnerId = Number(existingPost.user_id);
+            if (postOwnerId !== Number(userId)) {
+                try {
+                    const ownerToken = await User.getFcmTokenById(postOwnerId, connection);
+                    if (ownerToken) {
+                        const likerName = `${user?.first_name || "Someone"} ${user?.last_name || ""}`.trim();
+                        await sendPushNotification(
+                            ownerToken,
+                            "PlayMate",
+                            `${likerName} liked your post`
+                        );
+                    }
+                } catch (notificationError) {
+                    // Notification failures should not block successful like action.
+                    console.error("Like notification failed:", notificationError?.message || notificationError);
+                }
+            }
         }
 
         // Get updated like count
@@ -502,6 +559,34 @@ const joinGame = async (req, res) => {
         await GamePlayer.save({ game_id: gameId, user_id: userId }, connection);
 
         await connection.commit();
+
+        // Notify game host about new join request (non-blocking).
+        try {
+            const requesterRows = await User.findById(userId, connection);
+            const requester = Array.isArray(requesterRows) ? requesterRows[0] : requesterRows;
+
+            const hostToken = await User.getFcmTokenById(existingGame.host_user_id, connection);
+            if (hostToken) {
+                const sport = await Sport.findById(existingGame.sport_id, connection);
+                const venue = await Venue.findById(existingGame.venue_id, connection);
+
+                const requesterName = `${requester?.first_name || "Someone"} ${requester?.last_name || ""}`.trim();
+                const sportName = sport?.sport_name || "Sport";
+                const venueName = venue?.venue_name || "Venue";
+                const startTime = existingGame?.start_datetime
+                    ? new Date(existingGame.start_datetime).toLocaleString("en-IN")
+                    : "scheduled time";
+
+                await sendPushNotification(
+                    hostToken,
+                    "Join Request",
+                    `${requesterName} requested to join ${sportName} game at ${venueName} on ${startTime}`
+                );
+            }
+        } catch (notificationError) {
+            console.error("Join request notification failed:", notificationError?.message || notificationError);
+        }
+
         res.status(200).json(Response.success(200, "Joined game successfully"));
 
     } catch (error) {
@@ -569,7 +654,7 @@ const makePayment = async (req, res) => {
     try {
         await connection.beginTransaction();
 
-        const userId = req.user?.[0]?.user_id || req.body.user_id || req.params.userId;
+        const userId = req.user[0]?.user_id || req.body.user_id || req.params.userId;
         const gameId = req.body.game_id || req.params.gameId;
         const payment = req.body.payment || req.body;
 
@@ -667,7 +752,7 @@ const playerJoinedList = async (req, res) => {
     const connection = await db.getConnection();
     try {
         const { gameId } = req.params;
-        const userId = req.user?.[0]?.user_id || req.body.user_id || req.params.userId;
+        const userId = req.user[0]?.user_id || req.body.user_id || req.params.userId;
         if (!gameId || isNaN(gameId)) {
             return res.status(400).json(Response.error(400, "Invalid game ID"));
         }
@@ -689,7 +774,7 @@ const requestedPlayersList = async (req, res) => {
     const connection = await db.getConnection();
     try {
         const { gameId } = req.params;
-        const userId = req.user?.[0]?.user_id || req.body.user_id || req.params.userId;
+        const userId = req.user[0]?.user_id || req.body.user_id || req.params.userId;
         if (!gameId || isNaN(gameId)) {
             return res.status(400).json(Response.error(400, "Invalid game ID"));
         }
@@ -710,37 +795,284 @@ const requestedPlayersList = async (req, res) => {
 const updateGamePlayerStatus = async (req, res) => {
     try {
         const { game_player_id, user_id, status } = req.body;
+        const hostUserId = req.user[0]?.user_id;
         
+        if (!game_player_id || isNaN(game_player_id)) {
+            return res.status(400).json(Response.error(400, "Invalid game_player_id"));
+        }
+
+        if (!user_id || isNaN(user_id)) {
+            return res.status(400).json(Response.error(400, "Invalid user_id"));
+        }
+
+        if (!hostUserId) {
+            return res.status(401).json(Response.error(401, "Unauthorized"));
+        }
+
         // ENUM validation
         const allowedStatus = ["Pending", "Approved", "Rejected"];
         if (!allowedStatus.includes(status)) {
-            return res.status(400).json({
-                success: false,
-                message: "Invalid status. Allowed: Pending, Approved, Rejected",
-            });
+            return res.status(400).json(
+                Response.error(400, "Invalid status. Allowed: Pending, Approved, Rejected")
+            );
         }
 
-        const result = await GamePlayer.updateStatus(game_player_id, user_id, status);
-
-        if (result.affectedRows === 0) {
-            return res.status(404).json({
-                success: false,
-                message: "No matching record found",
-            });
+        const gamePlayer = await GamePlayer.findById(game_player_id);
+        if (!gamePlayer) {
+            return res.status(404).json(Response.error(404, "No matching record found"));
         }
 
-        return res.status(200).json({
-            success: true,
-            message: `Status updated successfully to ${status}`,
-        });
+        const game = await Games.findById(gamePlayer.game_id);
+        if (!game) {
+            return res.status(404).json(Response.error(404, "Game not found"));
+        }
+
+        if (Number(game.host_user_id) !== Number(hostUserId)) {
+            return res.status(403).json(Response.error(403, "Unauthorized to update this request"));
+        }
+
+        const updated = await GamePlayer.updateStatus(game_player_id, user_id, status);
+
+        if (!updated) {
+            return res.status(404).json(Response.error(404, "No matching record found"));
+        }
+
+        // Notify requester when host approves/rejects the request.
+        try {
+            const requesterToken = await User.getFcmTokenById(user_id);
+            if (requesterToken) {
+                const sport = await Sport.findById(game.sport_id);
+                const venue = await Venue.findById(game.venue_id);
+
+                const sportName = sport?.sport_name || "game";
+                const venueName = venue?.venue_name || "venue";
+                const startTime = game?.start_datetime
+                    ? new Date(game.start_datetime).toLocaleString("en-IN")
+                    : "scheduled time";
+
+                await sendPushNotification(
+                    requesterToken,
+                    `Join Request ${status}`,
+                    `Your request for ${sportName} at ${venueName} on ${startTime} was ${status.toLowerCase()}.`
+                );
+            }
+        } catch (notificationError) {
+            // Notification failure should not block status update.
+            console.error("Game request status notification failed:", notificationError?.message || notificationError);
+        }
+
+        return res.status(200).json(Response.success(200, `Status updated successfully to ${status}`));
 
     } catch (error) {
         console.error("updateGamePlayerStatus Error:", error);
-        return res.status(500).json({
-            success: false,
-            message: "Server error",
-        });
+        return res.status(500).json(Response.error(500, "Server error"));
     }
 };
 
-export { addUserSport, updateUserDetails, userProfile, deleteUserSport, userPosts, createPost, deletePost, toggleLike, getPostLikes, recentActivity, joinGame, leaveGame, makePayment, playerJoinedList, requestedPlayersList, updateGamePlayerStatus };
+
+const markNotificationsAsSeen = async (req, res) => {
+    const connection = await db.getConnection();
+    try {
+        const creatorId = req.user[0]?.user_id;
+        const { game_player_ids } = req.body; // array of game_player_id to mark as seen
+        console.log('markNotificationsAsSeen called with body:', game_player_ids);
+
+        if (!creatorId) {
+            return res.status(401).json(Response.error(401, 'Unauthorized: user_id missing'));
+        }
+
+        const [notificationColumn] = await connection.execute(
+            `SHOW COLUMNS FROM game_players LIKE 'notification_status'`
+        );
+        if (!notificationColumn.length) {
+            return res.status(200).json(Response.success(200, 'Notifications marked as seen', { affectedRows: 0 }));
+        }
+
+        let result;
+        if (Array.isArray(game_player_ids) && game_player_ids.length) {
+            // Update selected notifications only for games hosted by authenticated user.
+            const inClause = game_player_ids.map(() => '?').join(',');
+            [result] = await connection.execute(
+                `UPDATE game_players gp
+                 JOIN games g ON gp.game_id = g.game_id
+                 SET gp.notification_status = 1
+                 WHERE gp.game_player_id IN (${inClause})
+                   AND g.host_user_id = ?
+                   AND gp.notification_status = 0`,
+                [...game_player_ids, creatorId]
+            );
+        } else {
+            // If no ids are sent, mark all unseen host game notifications as seen.
+            [result] = await connection.execute(
+                `UPDATE game_players gp
+                 JOIN games g ON gp.game_id = g.game_id
+                 SET gp.notification_status = 1
+                 WHERE g.host_user_id = ?
+                   AND gp.status = 'Pending'
+                   AND gp.notification_status = 0`,
+                [creatorId]
+            );
+        }
+        console.log('Affected rows:', result.affectedRows);
+        res.status(200).json(Response.success(200, 'Notifications marked as seen', { affectedRows: result.affectedRows }));
+    } catch (error) {
+        console.error('Error marking notifications as seen:', error);
+        res.status(500).json(Response.error(500, 'Internal Server Error'));
+    } finally {
+        connection.release();
+    }
+};
+
+// Mark post like notifications as seen
+const markPostLikeNotificationsAsSeen = async (req, res) => {
+    const connection = await db.getConnection();
+    try {
+        const userId = req.user[0]?.user_id;
+        const { post_like_ids } = req.body; // array of {post_id, user_id} objects
+        console.log('markPostLikeNotificationsAsSeen called with body:', JSON.stringify(post_like_ids));
+        if (!userId) {
+            console.log('Unauthorized: user_id missing');
+            return res.status(401).json(Response.error(401, 'Unauthorized: user_id missing'));
+        }
+
+        let result;
+        if (Array.isArray(post_like_ids) && post_like_ids.length) {
+            // Mark all likes for the given post_ids as seen for the current user's posts
+            const inClause = post_like_ids.map(() => '?').join(',');
+            const postIds = post_like_ids.map(({ post_id }) => post_id);
+            [result] = await connection.execute(
+                `UPDATE post_likes pl
+                 JOIN posts p ON pl.post_id = p.post_id
+                 SET pl.notification_status = 1
+                 WHERE pl.post_id IN (${inClause})
+                   AND p.user_id = ?
+                   AND pl.notification_status = 0`,
+                [...postIds, userId]
+            );
+        } else {
+            // If no ids are sent, mark all unseen post-like notifications for user's posts.
+            [result] = await connection.execute(
+                `UPDATE post_likes pl
+                 JOIN posts p ON pl.post_id = p.post_id
+                 SET pl.notification_status = 1
+                 WHERE p.user_id = ?
+                   AND pl.notification_status = 0`,
+                [userId]
+            );
+        }
+        console.log('SQL result:', result);
+        res.status(200).json(Response.success(200, 'Post like notifications marked as seen', { affectedRows: result.affectedRows }));
+    } catch (error) {
+        console.error('Error marking post like notifications as seen:', error);
+        res.status(500).json(Response.error(500, 'Internal Server Error'));
+    } finally {
+        connection.release();
+    }
+};
+
+// Unified notification controller
+const getAllNotifications = async (req, res) => {
+    const connection = await db.getConnection();
+    try {
+        const userId = req.user[0]?.user_id;
+
+        if (!userId) {
+            return res.status(401).json(Response.error(401, 'Unauthorized'));
+        }
+
+        const [notificationColumn] = await connection.execute(
+            `SHOW COLUMNS FROM game_players LIKE 'notification_status'`
+        );
+        const hasGameNotificationStatus = notificationColumn.length > 0;
+
+        // Check if post_likes table has notification_status column
+        const [postLikeNotificationColumn] = await connection.execute(
+            `SHOW COLUMNS FROM post_likes LIKE 'notification_status'`
+        );
+        const hasPostLikeNotificationStatus = postLikeNotificationColumn.length > 0;
+        // 1️⃣ Get game notifications
+        const gameNotificationsQuery = hasGameNotificationStatus
+            ? `SELECT 
+                gp.game_player_id AS id,
+                'game' AS type,
+                gp.joined_at AS created_at,
+                gp.notification_status,
+                u.first_name,
+                u.last_name,
+                u.profile_image
+            FROM game_players gp
+            JOIN games g ON gp.game_id = g.game_id
+            JOIN users u ON gp.user_id = u.user_id
+            WHERE g.host_user_id = ? AND gp.notification_status = 0 AND gp.status = 'Pending'`
+            : `SELECT 
+                gp.game_player_id AS id,
+                'game' AS type,
+                gp.joined_at AS created_at,
+                0 AS notification_status,
+                u.first_name,
+                u.last_name,
+                u.profile_image
+            FROM game_players gp
+            JOIN games g ON gp.game_id = g.game_id
+            JOIN users u ON gp.user_id = u.user_id
+            WHERE g.host_user_id = ? AND gp.status = 'Pending'`;
+        const [gameNotifications] = await connection.execute(gameNotificationsQuery, [userId]);
+        // 2️⃣ Get user's posts
+        const [posts] = await connection.execute(
+            `SELECT post_id FROM posts WHERE user_id = ?`,
+            [userId]
+        );
+        let likeNotifications = [];
+        if (posts.length) {
+            // Fetch post like notifications for current user's posts
+            const postLikeNotificationsQuery = hasPostLikeNotificationStatus
+                ? `SELECT 
+                    pl.post_id AS id,
+                    'post_like' AS type,
+                    pl.liked_at AS created_at,
+                    pl.notification_status,
+                    u.first_name,
+                    u.last_name,
+                    u.profile_image
+                FROM post_likes pl
+                JOIN posts p ON pl.post_id = p.post_id
+                JOIN users u ON pl.user_id = u.user_id
+                WHERE p.user_id = ? 
+                AND pl.notification_status = 0`
+                : `SELECT 
+                    pl.post_id AS id,
+                    'post_like' AS type,
+                    pl.liked_at AS created_at,
+                    0 AS notification_status,
+                    u.first_name,
+                    u.last_name,
+                    u.profile_image
+                FROM post_likes pl
+                JOIN posts p ON pl.post_id = p.post_id
+                JOIN users u ON pl.user_id = u.user_id
+                WHERE p.user_id = ?`;
+            const [likes] = await connection.execute(
+                postLikeNotificationsQuery,
+                [userId]
+            );
+            likeNotifications = likes;
+        }
+        console.log(likeNotifications);
+        
+        // 3️⃣ Combine notifications
+        const notifications = [...gameNotifications, ...likeNotifications];
+        // 4️⃣ Sort latest first
+        notifications.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+        // console.log('Fetched notifications:', notifications);
+        res.status(200).json(
+            Response.success(200, 'Notifications fetched', { notifications })
+        );
+    } catch (error) {
+        console.error(error);
+        res.status(500).json(Response.error(500, 'Internal Server Error'));
+    } finally {
+        connection.release();
+    }
+};
+
+export { addUserSport, updateUserDetails, saveUserFcmToken, userProfile, deleteUserSport, userPosts, createPost, deletePost, toggleLike, getPostLikes, recentActivity, joinGame, leaveGame, makePayment, playerJoinedList, requestedPlayersList, updateGamePlayerStatus, markNotificationsAsSeen, markPostLikeNotificationsAsSeen, getAllNotifications };

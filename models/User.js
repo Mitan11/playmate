@@ -9,6 +9,7 @@ class User {
         this.last_name = userData.last_name;
         this.profile_image = userData.profile_image;
         this.phone_number = userData.phone_number;
+        this.fcm_token = userData.fcm_token;
         this.created_at = userData.created_at;
     }
 
@@ -23,6 +24,7 @@ class User {
                 first_name VARCHAR(50) NOT NULL,
                 last_name VARCHAR(50) NULL,
                 profile_image VARCHAR(165) NULL,
+                fcm_token VARCHAR(255) NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 INDEX idx_user_email (user_email)
             )
@@ -30,6 +32,13 @@ class User {
 
         try {
             await db.execute(createTableQuery);
+
+            // Backward compatibility for existing databases created before fcm_token.
+            const [columns] = await db.execute("SHOW COLUMNS FROM users LIKE 'fcm_token'");
+            if (!columns.length) {
+                await db.execute("ALTER TABLE users ADD COLUMN fcm_token VARCHAR(255) NULL");
+            }
+
             console.log('Users table created or already exists');
         } catch (error) {
             console.error('Error creating users table:', error);
@@ -76,12 +85,38 @@ class User {
     static async findById(userId, conn = db) {
         try {
             const [rows] = await conn.execute(
-                'SELECT user_id, user_email, first_name, last_name, phone_number, profile_image FROM users WHERE user_id = ?',
+                'SELECT user_id, user_email, first_name, last_name, phone_number, profile_image, fcm_token FROM users WHERE user_id = ?',
                 [userId]
             );
             return rows
         } catch (error) {
             console.error('Error finding user by ID:', error);
+            throw error;
+        }
+    }
+
+    static async updateFcmToken(userId, fcmToken, conn = db) {
+        try {
+            const [result] = await conn.execute(
+                'UPDATE users SET fcm_token = ? WHERE user_id = ?',
+                [fcmToken, userId]
+            );
+            return result.affectedRows > 0;
+        } catch (error) {
+            console.error('Error updating FCM token:', error);
+            throw error;
+        }
+    }
+
+    static async getFcmTokenById(userId, conn = db) {
+        try {
+            const [rows] = await conn.execute(
+                'SELECT fcm_token FROM users WHERE user_id = ? LIMIT 1',
+                [userId]
+            );
+            return rows.length ? rows[0].fcm_token : null;
+        } catch (error) {
+            console.error('Error fetching FCM token:', error);
             throw error;
         }
     }
