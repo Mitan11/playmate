@@ -402,6 +402,7 @@ const toggleLike = async (req, res) => {
                         );
                     }
                 } catch (notificationError) {
+                    console.log("Like notification failed:", notificationError);
                     // Notification failures should not block successful like action.
                     console.error("Like notification failed:", notificationError?.message || notificationError);
                 }
