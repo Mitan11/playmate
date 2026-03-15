@@ -9,7 +9,7 @@ if (!admin.apps.length) {
 
 const messaging = admin.messaging();
 
-export const sendPushNotification = async (registrationToken = process.env.FCM_TOKEN, title = "PlayMate", body = "Test notification from PlayMate", data = {}) => {
+export const sendPushNotification = async (registrationToken, title = "PlayMate", body = "Test notification from PlayMate") => {
     const token = registrationToken;
 
     if (!token) {
