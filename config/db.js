@@ -1,6 +1,5 @@
 import mysql from 'mysql2/promise';
 import AWS from 'aws-sdk';
-import fs from 'fs';
 
 AWS.config.update({ region: 'eu-north-1' });
 
@@ -15,10 +14,10 @@ const dbConfig = {
     connectionLimit: 3, // keep below provider limit
     queueLimit: 0,
 
-    ssl: {
+    ssl: process.env.DB_SSL_CA ? {
         rejectUnauthorized: false,
-        ca: fs.readFileSync('./global-bundle.pem')
-    }
+        ca: Buffer.from(process.env.DB_SSL_CA, 'utf-8')
+    } : undefined
 };
 
 // Create connection pool
