@@ -318,34 +318,25 @@ const userGamesCreated = async (req, res) => {
     g.start_datetime,
     g.end_datetime,
     g.price_per_hour,
-    
     g.created_at,
-    
+    g.status,
     u.first_name,
     u.last_name,
     u.profile_image,
-    
     s.sport_name,
-
     v.venue_name,
     v.address AS venue_location,
-
     b.payment AS payment_status,
     b.booking_id,
     b.total_price,
     COUNT(gp.user_id) AS total_players
 FROM games g
-JOIN sports s
-    ON g.sport_id = s.sport_id
-JOIN venues v
-    ON g.venue_id = v.venue_id
+JOIN sports s ON g.sport_id = s.sport_id
+JOIN venues v ON g.venue_id = v.venue_id
 LEFT JOIN users as u ON u.user_id = g.host_user_id
 LEFT JOIN bookings as b ON b.game_id = g.game_id
-LEFT JOIN game_players gp
-    ON g.game_id = gp.game_id
-   AND gp.status = 'Approved'
-
-WHERE g.host_user_id = ?
+LEFT JOIN game_players gp ON g.game_id = gp.game_id AND gp.status = 'Approved'
+WHERE g.host_user_id = ? AND g.status = 'active'
 GROUP BY
     g.game_id,
     g.start_datetime,
@@ -366,7 +357,7 @@ ORDER BY g.created_at DESC;
         `;
 
         const [rows] = await connection.query(query, [userId]);
-
+        console.log("User created games:", rows);
         res.status(200).json(Response.success(200, "User created games fetched successfully", rows));
     } catch (error) {
         console.error('Error fetching user created games:', error);
