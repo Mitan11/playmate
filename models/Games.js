@@ -92,6 +92,38 @@ class Games {
         }
     }
 
+    // Update game by ID
+    static async update(id, updates, conn = db) {
+        try {
+            const allowedFields = [
+                'sport_id',
+                'venue_id',
+                'start_datetime',
+                'end_datetime',
+                'host_user_id',
+                'price_per_hour',
+                'status'
+            ];
+
+            const fields = Object.keys(updates || {}).filter((field) => allowedFields.includes(field));
+            if (fields.length === 0) {
+                throw new Error('No valid fields provided for game update');
+            }
+
+            const setClause = fields.map((field) => `${field} = ?`).join(', ');
+            const values = fields.map((field) => updates[field]);
+
+            const [result] = await conn.execute(
+                `UPDATE games SET ${setClause} WHERE game_id = ?`,
+                [...values, id]
+            );
+            return result.affectedRows > 0;
+        } catch (error) {
+            console.error('Error updating game:', error);
+            throw error;
+        }
+    }
+
 }
 
 export default Games;

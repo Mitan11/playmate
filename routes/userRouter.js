@@ -3,7 +3,7 @@ import { addUserSport, createPost, deletePost, deleteUserSport, getAllNotificati
 import { handleValidationErrors } from '../middleware/validation.js';
 import upload from '../middleware/multer.js';
 import { verifyToken } from '../middleware/authUser.js';
-import { venueBooking, createPaymentOrder, allCreatedGames, userJoinedGames, userGamesCreated } from '../controllers/bookingController.js';
+import { venueBooking, createPaymentOrder, allCreatedGames, userJoinedGames, userGamesCreated, cancleBooking } from '../controllers/bookingController.js';
 
 const userRouter = express.Router();
 
@@ -166,6 +166,14 @@ userRouter.get('/notifications/all', verifyToken, (req, res) => {
     // #swagger.tags = ['User']
     // #swagger.description = 'Get all notifications (game join requests and post likes)'
     getAllNotifications(req, res);
+});
+
+userRouter.post('/cancelBooking', verifyToken, (req, res) => {  
+    // #swagger.tags = ['User']
+    // #swagger.description = 'Cancel a booking by ID'
+    // Implementation of cancelBooking function is assumed to be present
+    // cancelBooking(req, res);
+    cancleBooking(req, res);
 });
 
 export default userRouter;

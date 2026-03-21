@@ -198,6 +198,9 @@ const allCreatedGames = async (req, res) => {
         const query = `
         select 
         g.game_id,
+        g.start_datetime,
+        g.end_datetime,
+        g.price_per_hour,
         gp.status,
         s.sport_name,
         v.venue_name,
@@ -326,15 +329,15 @@ const userGamesCreated = async (req, res) => {
     s.sport_name,
     v.venue_name,
     v.address AS venue_location,
-    b.payment AS payment_status,
+        COALESCE(b.payment, 'unpaid') AS payment_status,
     b.booking_id,
-    b.total_price,
+        COALESCE(b.total_price, g.price_per_hour) AS total_price,
     COUNT(gp.user_id) AS total_players
 FROM games g
 JOIN sports s ON g.sport_id = s.sport_id
 JOIN venues v ON g.venue_id = v.venue_id
 LEFT JOIN users as u ON u.user_id = g.host_user_id
-LEFT JOIN bookings as b ON b.game_id = g.game_id
+    JOIN bookings as b ON b.game_id = g.game_id
 LEFT JOIN game_players gp ON g.game_id = gp.game_id AND gp.status = 'Approved'
 WHERE g.host_user_id = ? AND g.status = 'active'
 GROUP BY
@@ -367,10 +370,56 @@ ORDER BY g.created_at DESC;
     }
 }
 
+const cancleBooking = async (req, res) => {
+    const connection = await db.getConnection();
+    try {
+        const { booking_id, game_id } = req.body;
+        if (!booking_id) {
+            await connection.release();
+            return res.status(400).json(Response.error(400, "booking_id is required"));
+        }
+        if (!game_id) {
+            await connection.release();
+            return res.status(400).json(Response.error(400, "game_id is required"));
+        }
+
+        const booking = await Booking.findById(booking_id, connection);
+        const game = await Games.findById(game_id, connection);
+
+        if (!game) {
+            await connection.release();
+            return res.status(404).json(Response.error(404, "Game not found"));
+        }
+
+        if (!booking) {
+            await connection.release();
+            return res.status(404).json(Response.error(404, "Booking not found"));
+        }
+
+        if (booking.payment === "paid") {
+            await connection.release();
+            return res.status(400).json(Response.error(400, "Paid bookings cannot be cancelled"));
+        }
+
+        await Games.update(game_id, { status: "cancelled" }, connection);
+        await Games.deactivateById(game_id, connection);
+
+        res.status(200).json(Response.success(200, "Booking cancelled successfully"));
+
+    } catch (error) {
+        console.error('Error cancelling booking:', error);
+        res.status(500).json(Response.error(500, "Internal server error"));
+    } finally {
+        await connection.release();
+    }
+}
+
 export {
     venueBooking,
     createPaymentOrder,
     allCreatedGames,
     userJoinedGames,
-    userGamesCreated
+    userGamesCreated,
+    cancleBooking
+
 };
