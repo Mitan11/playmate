@@ -4,8 +4,17 @@ import AuthHelpers from "../utils/AuthHelpers.js";
 import { v2 as cloudinary } from 'cloudinary'
 import db from "../config/db.js";
 import { sendEmail, sendWelcomeEmail } from "../utils/Mail.js";
-import { playmateWelcomeTemplate, resetPasswordTemplate } from "../utils/emailTemplates.js";
+import { loginOtpTemplate, playmateWelcomeTemplate, resetPasswordTemplate } from "../utils/emailTemplates.js";
 import os from "os";
+
+const LOGIN_OTP_TTL_MS = Number(process.env.LOGIN_OTP_TTL_MS || 5 * 60 * 1000);
+const loginOtpStore = new Map();
+
+const toSafeUserPayload = (user) => {
+    const safeUser = { ...user };
+    delete safeUser.user_password;
+    return safeUser;
+};
 
 // User registration controller
 const register = async (req, res) => {
@@ -107,18 +116,69 @@ const login = async (req, res) => {
             );
         }
 
-        delete user.user_password;
+        const safeUser = toSafeUserPayload(user);
+        const otp = AuthHelpers.generateOtp();
+        const expiresAt = Date.now() + LOGIN_OTP_TTL_MS;
 
-        // Generate auth token
-        const token = await AuthHelpers.generateToken(user);
+        loginOtpStore.set(user.user_email, {
+            otp,
+            expiresAt,
+            user: safeUser
+        });
 
-        // Respond with success
-        res.status(200).json(Response.success(200, "Login successful", user, token));
+        const html = loginOtpTemplate({
+            name: safeUser.first_name,
+            otp,
+            expiresInMinutes: Math.ceil(LOGIN_OTP_TTL_MS / 60000)
+        });
+
+        await sendEmail(user.user_email, "Playmate Login Verification Code", html);
+
+        // Respond with pending 2FA status
+        res.status(200).json(Response.success(200, "OTP sent to your email", {
+            requires_2fa: true,
+            user_email: user.user_email,
+            expires_in_seconds: Math.floor(LOGIN_OTP_TTL_MS / 1000)
+        }));
 
     } catch (error) {
         res.status(500).json(Response.error(500, "Login failed", error.message));
     }
 };
+
+const verifyLoginOtp = async (req, res) => {
+    try {
+        const { user_email, otp } = req.body;
+
+        const entry = loginOtpStore.get(user_email);
+        if (!entry) {
+            return res.status(400).json(Response.error(400, "OTP not found or already used", {
+                otp_error: "Please login again to request a new OTP"
+            }));
+        }
+
+        if (Date.now() > entry.expiresAt) {
+            loginOtpStore.delete(user_email);
+            return res.status(400).json(Response.error(400, "OTP has expired", {
+                otp_error: "OTP expired. Please login again"
+            }));
+        }
+
+        if (String(entry.otp) !== String(otp)) {
+            return res.status(401).json(Response.error(401, "Invalid OTP", {
+                otp_error: "Incorrect OTP"
+            }));
+        }
+
+        loginOtpStore.delete(user_email);
+
+        const token = await AuthHelpers.generateToken(entry.user);
+        return res.status(200).json(Response.success(200, "Login successful", entry.user, token));
+    } catch (error) {
+        console.error("Verify login OTP error:", error);
+        return res.status(500).json(Response.error(500, "OTP verification failed", error.message));
+    }
+}
 
 const healthCheck = async (req, res) => {
     // Health check for the Auth API
@@ -311,4 +371,4 @@ const changePassword = async (req, res) => {
     }
 }
 
-export { register, login, healthCheck, checkEmailExists, sendResetPasswordEmail, resetPassword, changePassword };
+export { register, login, verifyLoginOtp, healthCheck, checkEmailExists, sendResetPasswordEmail, resetPassword, changePassword };

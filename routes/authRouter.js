@@ -1,6 +1,6 @@
 import express from 'express';
-import { changePassword, checkEmailExists, healthCheck, login, register, resetPassword, sendResetPasswordEmail, } from '../controllers/authController.js';
-import { handleValidationErrors, validateUserLogin, validateUserRegistration, validateResetPasswordEmail, validateResetPassword, validateChangePassword } from '../middleware/validation.js';
+import { changePassword, checkEmailExists, healthCheck, login, register, resetPassword, sendResetPasswordEmail, verifyLoginOtp } from '../controllers/authController.js';
+import { handleValidationErrors, validateLoginOtp, validateUserLogin, validateUserRegistration, validateResetPasswordEmail, validateResetPassword, validateChangePassword } from '../middleware/validation.js';
 import upload from '../middleware/multer.js';
 import { verifyToken } from '../middleware/authUser.js';
 
@@ -18,6 +18,13 @@ authRouter.post('/login', validateUserLogin, handleValidationErrors, (req, res) 
     // #swagger.tags = ['Authentication']
     // #swagger.description = 'User login'
     login(req, res);
+});
+
+// User login OTP verification route
+authRouter.post('/verify-login-otp', validateLoginOtp, handleValidationErrors, (req, res) => {
+    // #swagger.tags = ['Authentication']
+    // #swagger.description = 'Verify login OTP and complete login'
+    verifyLoginOtp(req, res);
 });
 
 // Health check route

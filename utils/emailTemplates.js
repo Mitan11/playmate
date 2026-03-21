@@ -383,6 +383,53 @@ export const resetPasswordTemplate = (otp) => {
     `;
 };
 
+export const loginOtpTemplate = ({
+  name,
+  otp,
+  expiresInMinutes = 5,
+}) => {
+  const year = new Date().getFullYear();
+  return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Playmate Login Verification</title>
+</head>
+<body style="margin:0; padding:0; background:#f6f8fa; font-family: Arial, Helvetica, sans-serif; color:#0f172a;">
+  <center>
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" bgcolor="#f6f8fa">
+      <tr>
+        <td align="center" style="padding: 20px 10px;">
+          <table width="560" cellpadding="0" cellspacing="0" border="0" role="presentation" bgcolor="#ffffff" style="max-width:560px; width:100%; background:#ffffff; border-radius:12px; overflow:hidden; border:1px solid #e5e7eb;">
+            <tr>
+              <td bgcolor="#22A06B" style="padding:16px; color:#ffffff; text-align:center; font-size:20px; font-weight:700;">Playmate</td>
+            </tr>
+            <tr>
+              <td style="padding:24px;">
+                <h2 style="margin:0 0 10px 0; font-size:22px;">Login Verification</h2>
+                <p style="margin:0 0 14px 0; color:#334155;">Hi ${name || "Player"}, use this OTP to complete your login.</p>
+                <div style="font-size:30px; letter-spacing:8px; font-weight:700; color:#0f172a; text-align:center; margin:16px 0;">${otp}</div>
+                <p style="margin:0 0 8px 0; color:#334155;">This code is valid for ${expiresInMinutes} minutes.</p>
+                <p style="margin:0; color:#64748b; font-size:13px;">If you did not try to log in, please ignore this email.</p>
+              </td>
+            </tr>
+            <tr>
+              <td bgcolor="#f2f5f4" style="padding:12px; text-align:center; color:#555555; font-size:12px;">
+                <div>© ${year} Playmate</div>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </center>
+</body>
+</html>
+`;
+};
+
 export const venueOwnerWelcomeTemplate = ({
   name,
   logoUrl = "https://res.cloudinary.com/dsw5tkkyr/image/upload/v1764918615/1758647674156_nl5ayo.png",

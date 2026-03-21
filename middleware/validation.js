@@ -58,6 +58,22 @@ export const validateUserLogin = [
         .withMessage('Password length is invalid')
 ];
 
+// Login OTP verification validation
+export const validateLoginOtp = [
+    body('user_email')
+        .trim()
+        .isEmail()
+        .withMessage('Please enter a valid email address')
+        .normalizeEmail()
+        .toLowerCase(),
+
+    body('otp')
+        .isLength({ min: 4, max: 4 })
+        .withMessage('OTP must be 4 digits')
+        .isNumeric()
+        .withMessage('OTP must contain only numbers')
+];
+
 // Reset password email validation
 export const validateResetPasswordEmail = [
     body('user_email')
