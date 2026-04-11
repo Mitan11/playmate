@@ -24,6 +24,21 @@ const verifyRazorpaySignature = (orderId, paymentId, signature) => {
     return expected === signature;
 };
 
+const normalizePaymentPayload = (payment = {}) => {
+    const orderId = payment?.razorpay_order_id || payment?.order_id || payment?.orderId;
+    const paymentId = payment?.razorpay_payment_id || payment?.payment_id || payment?.paymentId;
+    const signature = payment?.razorpay_signature || payment?.signature;
+    const rawAmount = payment?.amount ?? payment?.total_amount;
+    const amount = Number(rawAmount);
+
+    return {
+        orderId,
+        paymentId,
+        signature,
+        amount: Number.isFinite(amount) ? amount : null
+    };
+};
+
 const updateUserDetails = async (req, res) => {
     const connection = await db.getConnection();
     try {
@@ -659,17 +674,14 @@ const makePayment = async (req, res) => {
         const gameId = req.body.game_id || req.params.gameId;
         const payment = req.body.payment || req.body;
 
-        const paymentOrderId = payment?.razorpay_order_id;
-        const paymentId = payment?.razorpay_payment_id;
-        const paymentSignature = payment?.razorpay_signature;
-        const amount = Number(payment?.amount);
+        const { orderId: paymentOrderId, paymentId, signature: paymentSignature, amount } = normalizePaymentPayload(payment);
 
         if (!userId || !gameId) {
             await connection.rollback();
             return res.status(400).json(Response.error(400, "user_id and game_id are required"));
         }
 
-        if (!paymentOrderId || !paymentId || !paymentSignature || !Number.isFinite(amount) || amount <= 0) {
+        if (!paymentOrderId || !paymentId || !paymentSignature) {
             await connection.rollback();
             return res.status(400).json(Response.error(400, "Valid payment details are required"));
         }
@@ -709,7 +721,7 @@ const makePayment = async (req, res) => {
             const venue = await Venue.findById(booking.venue_id, connection);
             const game = await Games.findById(booking.game_id, connection);
             const sport = game ? await Sport.findById(game.sport_id, connection) : null;
-            const totalPrice = Number.isFinite(Number(amount))
+            const totalPrice = Number.isFinite(Number(amount)) && Number(amount) > 0
                 ? Number(amount).toFixed(2)
                 : Number.isFinite(Number(booking?.total_price))
                     ? Number(booking.total_price).toFixed(2)
@@ -797,7 +809,7 @@ const updateGamePlayerStatus = async (req, res) => {
     try {
         const { game_player_id, user_id, status } = req.body;
         const hostUserId = req.user[0]?.user_id;
-        
+
         if (!game_player_id || isNaN(game_player_id)) {
             return res.status(400).json(Response.error(400, "Invalid game_player_id"));
         }
@@ -991,7 +1003,8 @@ const getAllNotifications = async (req, res) => {
             `SHOW COLUMNS FROM post_likes LIKE 'notification_status'`
         );
         const hasPostLikeNotificationStatus = postLikeNotificationColumn.length > 0;
-        // 1️⃣ Get game notifications
+        // 1️⃣ Get game notifications (where user is HOST, not recipient)
+        // This will NOT show notifications where the current user is the recipient (joined a game)
         const gameNotificationsQuery = hasGameNotificationStatus
             ? `SELECT 
                 gp.game_player_id AS id,
@@ -1018,14 +1031,15 @@ const getAllNotifications = async (req, res) => {
             JOIN users u ON gp.user_id = u.user_id
             WHERE g.host_user_id = ? AND gp.status = 'Pending'`;
         const [gameNotifications] = await connection.execute(gameNotificationsQuery, [userId]);
-        // 2️⃣ Get user's posts
+
+        // 2️⃣ Get post-like notifications (where user is POST OWNER, not liker)
+        // This will NOT show notifications where the current user liked someone else's post
         const [posts] = await connection.execute(
             `SELECT post_id FROM posts WHERE user_id = ?`,
             [userId]
         );
         let likeNotifications = [];
         if (posts.length) {
-            // Fetch post like notifications for current user's posts
             const postLikeNotificationsQuery = hasPostLikeNotificationStatus
                 ? `SELECT 
                     pl.post_id AS id,
@@ -1039,7 +1053,8 @@ const getAllNotifications = async (req, res) => {
                 JOIN posts p ON pl.post_id = p.post_id
                 JOIN users u ON pl.user_id = u.user_id
                 WHERE p.user_id = ? 
-                AND pl.notification_status = 0`
+                AND pl.notification_status = 0
+                    AND pl.user_id != ?` // Exclude likes made by the current user
                 : `SELECT 
                     pl.post_id AS id,
                     'post_like' AS type,
@@ -1051,20 +1066,18 @@ const getAllNotifications = async (req, res) => {
                 FROM post_likes pl
                 JOIN posts p ON pl.post_id = p.post_id
                 JOIN users u ON pl.user_id = u.user_id
-                WHERE p.user_id = ?`;
+                WHERE p.user_id = ?
+                    AND pl.user_id != ?`;
             const [likes] = await connection.execute(
                 postLikeNotificationsQuery,
-                [userId]
+                [userId, userId]
             );
             likeNotifications = likes;
         }
-        console.log(likeNotifications);
-        
         // 3️⃣ Combine notifications
         const notifications = [...gameNotifications, ...likeNotifications];
         // 4️⃣ Sort latest first
         notifications.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-        // console.log('Fetched notifications:', notifications);
         res.status(200).json(
             Response.success(200, 'Notifications fetched', { notifications })
         );

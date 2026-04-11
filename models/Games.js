@@ -124,6 +124,18 @@ class Games {
         }
     }
 
+    static async delete(id, conn = db) {
+        try {
+            const [result] = await conn.execute(
+                `DELETE FROM games WHERE game_id = ?`,
+                [id]
+            );
+            return result.affectedRows > 0;
+        } catch (error) {
+            console.error('Error deleting game:', error);
+            throw error;
+        }
+    }
 }
 
 export default Games;

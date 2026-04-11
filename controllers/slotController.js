@@ -3,6 +3,33 @@ import Slot from "../models/Slot.js";
 import Response from "../utils/Response.js";
 import axios from "axios";
 
+const buildIsoDateTime = (selectedDate, timeValue) => {
+    if (!selectedDate || !timeValue) return null;
+
+    const datePart = String(selectedDate).split("T")[0];
+    const rawTime = String(timeValue).split(".")[0];
+    const hhmmss = rawTime.length === 5 ? `${rawTime}:00` : rawTime.slice(0, 8);
+
+    return `${datePart}T${hhmmss}.000Z`;
+};
+
+const parseTimeRange = (timeRange) => {
+    if (!timeRange || typeof timeRange !== "string") {
+        return { startTime: null, endTime: null };
+    }
+
+    const [rawStart, rawEnd] = timeRange.split("-").map((part) => part?.trim());
+    const normalize = (value) => {
+        if (!value) return null;
+        return value.length === 5 ? `${value}:00` : value.slice(0, 8);
+    };
+
+    return {
+        startTime: normalize(rawStart),
+        endTime: normalize(rawEnd)
+    };
+};
+
 const getAvailableSlotsByVenueAndDate = async (req, res) => {
     const connection = await db.getConnection();
     try {
@@ -50,14 +77,34 @@ const getAvailableSlotsByVenueAndDate = async (req, res) => {
 
         const rows = await Slot.getAvailableSlotsByVenueAndDate(venueId, date, sportId, connection);
 
-        const recommendedSlots = Array.isArray(resData?.recommended_slots) ? resData.recommended_slots : [];
+        const slotsWithIsoTime = rows.map((slot) => ({
+            ...slot,
+            start_time_iso: buildIsoDateTime(slot.selected_date, slot.start_time),
+            end_time_iso: buildIsoDateTime(slot.selected_date, slot.end_time)
+        }));
+
+        const recommendedSlotsRaw = Array.isArray(resData?.recommended_slots) ? resData.recommended_slots : [];
+        const recommendedSlots = recommendedSlotsRaw.map((recommendedSlot) => {
+            const { startTime, endTime } = parseTimeRange(recommendedSlot.time);
+            const selectedDate = recommendedSlot.date || formattedDate;
+            const startTimeValue = recommendedSlot.start_time || startTime;
+            const endTimeValue = recommendedSlot.end_time || endTime;
+
+            return {
+                ...recommendedSlot,
+                start_time: startTimeValue,
+                end_time: endTimeValue,
+                start_time_iso: buildIsoDateTime(selectedDate, startTimeValue),
+                end_time_iso: buildIsoDateTime(selectedDate, endTimeValue)
+            };
+        });
         const recommendationMeta = resData?.meta ?? null;
 
         const recommendationMap = new Map(
             recommendedSlots.map((recommendedSlot) => [Number(recommendedSlot.slot_id), recommendedSlot])
         );
 
-        const mergedSlots = rows.map((slot) => {
+        const mergedSlots = slotsWithIsoTime.map((slot) => {
             const slotId = Number(slot.slot_id ?? slot.id);
             const recommendation = recommendationMap.get(slotId);
 
@@ -74,7 +121,7 @@ const getAvailableSlotsByVenueAndDate = async (req, res) => {
         });
 
         const mergedResponse = {
-            available_slots: rows,
+            available_slots: slotsWithIsoTime,
             merged_slots: mergedSlots,
             recommended_slots: recommendedSlots,
             meta: recommendationMeta

@@ -29,9 +29,24 @@ const verifyRazorpaySignature = (orderId, paymentId, signature) => {
     return expected === signature;
 };
 
+const normalizePaymentPayload = (payment = {}) => {
+    const orderId = payment?.razorpay_order_id || payment?.order_id || payment?.orderId;
+    const paymentId = payment?.razorpay_payment_id || payment?.payment_id || payment?.paymentId;
+    const signature = payment?.razorpay_signature || payment?.signature;
+    const rawAmount = payment?.amount ?? payment?.total_amount;
+    const amount = Number(rawAmount);
+
+    return {
+        orderId,
+        paymentId,
+        signature,
+        amount: Number.isFinite(amount) ? amount : null
+    };
+};
+
 const createPaymentOrder = async (req, res) => {
     try {
-        const { amount, currency = "INR", receipt } = req.body;
+        const { amount, currency = "INR", receipt, notes } = req.body;
         if (!amount || Number.isNaN(Number(amount)) || Number(amount) <= 0) {
             return res.status(400).json(Response.error(400, "Valid amount is required"));
         }
@@ -40,13 +55,15 @@ const createPaymentOrder = async (req, res) => {
         const order = await razorpay.orders.create({
             amount: Math.round(Number(amount) * 100),
             currency,
-            receipt
+            receipt,
+            notes: notes && typeof notes === "object" ? notes : undefined
         });
 
         return res.status(200).json(Response.success(200, "Order created", {
             order_id: order.id,
             amount: order.amount,
-            currency: order.currency
+            currency: order.currency,
+            receipt: order.receipt
         }));
     } catch (error) {
         console.error("Error creating Razorpay order:", error);
@@ -69,13 +86,10 @@ const venueBooking = async (req, res) => {
             return res.status(400).json(Response.error(400, "Missing required fields"));
         }
 
-        const paymentOrderId = payment?.razorpay_order_id;
-        const paymentId = payment?.razorpay_payment_id;
-        const paymentSignature = payment?.razorpay_signature;
-        const amount = Number(payment?.amount);
+        const { orderId: paymentOrderId, paymentId, signature: paymentSignature, amount } = normalizePaymentPayload(payment);
 
         let paymentStatus = "unpaid";
-        const hasPaymentDetails = paymentOrderId && paymentId && paymentSignature && Number.isFinite(amount) && amount > 0;
+        const hasPaymentDetails = paymentOrderId && paymentId && paymentSignature;
         if (hasPaymentDetails) {
             if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
                 if (transactionStarted) await connection.rollback();
@@ -142,9 +156,11 @@ const venueBooking = async (req, res) => {
                 const userRows = await User.findById(host_id, connection);
                 const user = userRows?.[0];
                 const venue = await Venue.findById(venue_id, connection);
-                const totalPrice = Number.isFinite(Number(amount))
+                const totalPrice = Number.isFinite(Number(amount)) && Number(amount) > 0
                     ? Number(amount).toFixed(2)
-                    : amount;
+                    : Number.isFinite(Number(price))
+                        ? Number(price).toFixed(2)
+                        : price;
 
                 if (user?.user_email) {
                     const subject = `Playmate Receipt - Booking #${booking.booking_id}`;
@@ -192,14 +208,15 @@ const allCreatedGames = async (req, res) => {
     const connection = await db.getConnection();
     try {
         const userId = req.user?.[0]?.user_id || req.params.userId || req.body.user_id;
+        console.log("userId:", userId);
         if (!userId) {
             return res.status(400).json(Response.error(400, "user_id is required"));
         }
         const query = `
         select 
         g.game_id,
-        g.start_datetime,
-        g.end_datetime,
+        DATE_FORMAT(g.start_datetime, '%Y-%m-%d %H:%i:%s') AS start_datetime,
+        DATE_FORMAT(g.end_datetime, '%Y-%m-%d %H:%i:%s') AS end_datetime,
         g.price_per_hour,
         gp.status,
         s.sport_name,
@@ -226,7 +243,7 @@ const allCreatedGames = async (req, res) => {
         `
 
         const [rows] = await connection.query(query, [userId, userId]);
-
+        console.log("All created games:", rows);
         res.status(200).json(Response.success(200, "Games fetched successfully", rows));
 
     } catch (error) {
@@ -248,8 +265,8 @@ const userJoinedGames = async (req, res) => {
 
         const query = `SELECT 
     g.game_id,
-    g.start_datetime,
-    g.end_datetime,
+    DATE_FORMAT(g.start_datetime, '%Y-%m-%d %H:%i:%s') AS start_datetime,
+    DATE_FORMAT(g.end_datetime, '%Y-%m-%d %H:%i:%s') AS end_datetime,
     g.price_per_hour,
     g.status AS game_status,
     g.created_at,
@@ -318,8 +335,8 @@ const userGamesCreated = async (req, res) => {
         const query = `
         SELECT 
     g.game_id,
-    g.start_datetime,
-    g.end_datetime,
+    DATE_FORMAT(b.start_datetime, '%Y-%m-%d %H:%i:%s') AS start_datetime,
+    DATE_FORMAT(b.end_datetime, '%Y-%m-%d %H:%i:%s') AS end_datetime,
     g.price_per_hour,
     g.created_at,
     g.status,
@@ -332,30 +349,18 @@ const userGamesCreated = async (req, res) => {
         COALESCE(b.payment, 'unpaid') AS payment_status,
     b.booking_id,
         COALESCE(b.total_price, g.price_per_hour) AS total_price,
-    COUNT(gp.user_id) AS total_players
+    (
+        SELECT COUNT(*)
+        FROM game_players gp
+        WHERE gp.game_id = g.game_id
+          AND gp.status = 'Approved'
+    ) AS total_players
 FROM games g
 JOIN sports s ON g.sport_id = s.sport_id
 JOIN venues v ON g.venue_id = v.venue_id
 LEFT JOIN users as u ON u.user_id = g.host_user_id
-    JOIN bookings as b ON b.game_id = g.game_id
-LEFT JOIN game_players gp ON g.game_id = gp.game_id AND gp.status = 'Approved'
+JOIN bookings as b ON b.game_id = g.game_id
 WHERE g.host_user_id = ? AND g.status = 'active'
-GROUP BY
-    g.game_id,
-    g.start_datetime,
-    g.end_datetime,
-    g.price_per_hour,
-    g.status,
-    g.created_at,
-    s.sport_name,
-    v.venue_name,
-    v.address,
-    u.first_name,
-    u.last_name,
-    u.profile_image,
-    b.payment,
-    b.booking_id,
-    b.total_price
 ORDER BY g.created_at DESC;
         `;
 
@@ -401,7 +406,7 @@ const cancleBooking = async (req, res) => {
             return res.status(400).json(Response.error(400, "Paid bookings cannot be cancelled"));
         }
 
-        await Games.update(game_id, { status: "cancelled" }, connection);
+        await Games.delete(game_id, connection);
         await Games.deactivateById(game_id, connection);
 
         res.status(200).json(Response.success(200, "Booking cancelled successfully"));
