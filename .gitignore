@@ -5,3 +5,7 @@ node_modules
 config/pushNotification.json
 
 global-bundle.pem
+
+playmate-server-launcher.exe
+playmate-server.exe
+start-server.ps1

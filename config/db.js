@@ -1,7 +1,7 @@
 import mysql from 'mysql2/promise';
-import AWS from 'aws-sdk';
+// import AWS from 'aws-sdk';
 
-AWS.config.update({ region: 'eu-north-1' });
+// AWS.config.update({ region: 'eu-north-1' });
 
 const dbConfig = {
     host: process.env.DB_HOST,

@@ -1,14 +1,15 @@
 import db from "../config/db.js";
 import Slot from "../models/Slot.js";
 import Response from "../utils/Response.js";
+import axios from "axios";
 
 const getAvailableSlotsByVenueAndDate = async (req, res) => {
     const connection = await db.getConnection();
     try {
         connection.beginTransaction();
         const { venueId } = req.params;
-        let { date , sportId } = req.query;
-        
+        let { date, sportId } = req.query;
+        const userId = Number(req.user?.user_id ?? req.body?.userId);
         date = date ? new Date(date) : null;
 
         if (!venueId || isNaN(venueId)) {
@@ -21,10 +22,67 @@ const getAvailableSlotsByVenueAndDate = async (req, res) => {
             return res.status(400).json(Response.error(400, "date is required (YYYY-MM-DD)"));
         }
 
+        if (Number.isNaN(userId)) {
+            await connection.rollback();
+            return res.status(400).json(Response.error(400, "user_id is required and must be a number"));
+        }
+
+        const formattedDate = date.toISOString().split('T')[0];
+        const recommendationUrl = `http://localhost:8080/api/recommendations/slots/${venueId}`;
+
+        let resData = null;
+        try {
+            const response = await axios.post(
+                recommendationUrl,
+                { user_id: userId },
+                {
+                    params: {
+                        date: formattedDate,
+                        sportId
+                    }
+                }
+            );
+            resData = response.data;
+        } catch (error) {
+            console.log(error);
+            console.error('Error fetching bookings:', error.message);
+        }
+
         const rows = await Slot.getAvailableSlotsByVenueAndDate(venueId, date, sportId, connection);
 
+        const recommendedSlots = Array.isArray(resData?.recommended_slots) ? resData.recommended_slots : [];
+        const recommendationMeta = resData?.meta ?? null;
+
+        const recommendationMap = new Map(
+            recommendedSlots.map((recommendedSlot) => [Number(recommendedSlot.slot_id), recommendedSlot])
+        );
+
+        const mergedSlots = rows.map((slot) => {
+            const slotId = Number(slot.slot_id ?? slot.id);
+            const recommendation = recommendationMap.get(slotId);
+
+            return {
+                ...slot,
+                is_recommended: Boolean(recommendation),
+                recommendation: recommendation
+                    ? {
+                        score: recommendation.score,
+                        reason: recommendation.reason
+                    }
+                    : null
+            };
+        });
+
+        const mergedResponse = {
+            available_slots: rows,
+            merged_slots: mergedSlots,
+            recommended_slots: recommendedSlots,
+            meta: recommendationMeta
+        };
+
         await connection.commit();
-        res.status(200).json(Response.success(200, "Available slots fetched successfully", rows));
+        console.log("Merged Response:", mergedResponse);
+        res.status(200).json(Response.success(200, "Available slots fetched successfully", mergedResponse));
     } catch (error) {
         await connection.rollback();
         console.error("Error fetching available slots:", error);
